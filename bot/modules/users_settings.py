@@ -45,6 +45,7 @@ desp_dict = {'rcc': ['RClone is a command-line program to sync files and directo
             'user_tds': [f'UserTD helps to Upload files via Bot to your Custom Drive Destination via Global SA mail\n\n➲ <b>SA Mail :</b> {"Not Specified" if "USER_TD_SA" not in config_dict else config_dict["USER_TD_SA"]}', 'Send User TD details for Use while Mirror/Clone\n➲ <b>Format:</b>\nname id/link index(optional)\nname2 link2/id2 index(optional)\n\n<b>NOTE:</b>\n<i>1. Drive ID must be valid, then only it will accept\n2. Names can have spaces\n3. All UserTDs are updated on every change\n4. To delete specific UserTD, give Name(s) separated by each line</i>\n\n<b>Timeout:</b> 60 sec'],
             'gofile': ['Gofile is a free file sharing and storage platform. You can store and share your content without any limit.', "Send GoFile's API Key. Get it on https://gofile.io/myProfile, It will not be Accepted if the API Key is Invalid !!\n<b>Timeout:</b> 60 sec"],
             'streamtape': ['Streamtape is free Video Streaming & sharing Hoster', "Send StreamTape's Login and Key\n<b>Format:</b> <code>user_login:pass_key</code>\n<b>Timeout:</b> 60 sec"],
+            'lauto_rename': ['Leech Filename Auto Rename is combination of dynamic tags used for renaming Filename of the Leech Files', 'Send Leech Filename Auto Rename Format. Documentation Here : <a href="https://t.me/KPSBots/87">Click Me</a> \n<b>Timeout:</b> 60 sec'],
             }
 fname_dict = {'rcc': 'RClone',
              'lprefix': 'Prefix',
@@ -57,6 +58,7 @@ fname_dict = {'rcc': 'RClone',
              'mremname': 'Remname',
              'ldump': 'User Dump',
              'lcaption': 'Caption',
+             'lauto_rename': 'Auto Rename',
              'thumb': 'Thumbnail',
              'yt_opt': 'YT-DLP Options',
              'usess': 'User Session',
@@ -187,10 +189,13 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         metadata = 'Not Exists' if (val:=user_dict.get('metadata', config_dict.get('METADATA', ''))) == '' else val
         buttons.ibutton(f"{'✅️' if metadata != 'Not Exists' else ''} Leech Metadata", f"userset {user_id} metadata")
 
+        lauto_rename = 'Not Exists' if (val:=user_dict.get('lauto_rename', config_dict.get('LEECH_AUTO_RENAME_FORMAT', ''))) == '' else val
+        buttons.ibutton(f"{'✅️' if lauto_rename != 'Not Exists' else ''} Auto Rename Format", f"userset {user_id} lauto_rename")
+
         text = BotTheme('LEECH', NAME=name, DL=f"{dailyll} / {dailytlle}",
                 LTYPE=ltype, THUMB=thumbmsg, SPLIT_SIZE=split_size,
                 EQUAL_SPLIT=equal_splits, MEDIA_GROUP=media_group,
-                AUTO_RENAME=auto_rename,
+                AUTO_RENAME=auto_rename, LAUTO_RENAME=escape(lauto_rename),
                 LCAPTION=escape(lcaption), LPREFIX=escape(lprefix),
                 LSUFFIX=escape(lsuffix), LREMNAME=escape(lremname), 
                 LDUMP=ldump, METADATA=escape(metadata),
@@ -239,8 +244,8 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
                 buttons.ibutton("Disable Media Group", f"userset {user_id} mgroup", "header")
             else:
                 buttons.ibutton("Enable Media Group", f"userset {user_id} mgroup", "header")
-        elif key in ['lprefix', 'lremname', 'lsuffix', 'lcaption', 'ldump', 'metadata', 'lattachment']:
-            set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f'LEECH_FILENAME_{key[1:].upper()}', ''))) == '' else val
+        elif key in ['lprefix', 'lremname', 'lsuffix', 'lcaption', 'ldump', 'metadata', 'lattachment', 'lauto_rename']:
+            set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f"LEECH_{'FILENAME_' if key != 'lauto_rename' else ''}{key[1:].upper() if key != 'lauto_rename' else 'AUTO_RENAME_FORMAT'}", ''))) == '' else val
             if set_exist != 'Not Exists' and key == "ldump":
                 set_exist = '\n\n' + '\n'.join([f"{index}. <b>{dump}</b> : <code>{ids}</code>" for index, (dump, ids) in enumerate(val.items(), start=1)])
             text += f"➲ <b>Leech Filename {fname_dict[key]} :</b> {set_exist}\n\n"
@@ -638,7 +643,7 @@ async def edit_user_settings(client, query):
         pfunc = partial(set_custom, pre_event=query, key=data[2])
         rfunc = partial(update_user_settings, query, data[2], 'mirror' if data[2] in ['ddl_servers', 'user_tds'] else "ddl_servers")
         await event_handler(client, query, pfunc, rfunc)
-    elif data[2] in ['lprefix', 'lsuffix', 'lremname', 'lcaption', 'ldump', 'mprefix', 'msuffix', 'mremname', 'metadata', 'lattachment']:
+    elif data[2] in ['lprefix', 'lsuffix', 'lremname', 'lcaption', 'ldump', 'mprefix', 'msuffix', 'mremname', 'metadata', 'lattachment', 'lauto_rename']:
         handler_dict[user_id] = False
         await query.answer()
         edit_mode = len(data) == 4
@@ -648,7 +653,7 @@ async def edit_user_settings(client, query):
         pfunc = partial(set_custom, pre_event=query, key=data[2])
         rfunc = partial(update_user_settings, query, data[2], return_key)
         await event_handler(client, query, pfunc, rfunc)
-    elif data[2] in ['dlprefix', 'dlsuffix', 'dlremname', 'dlcaption', 'dldump', 'dmetadata', 'dlattachment']:
+    elif data[2] in ['dlprefix', 'dlsuffix', 'dlremname', 'dlcaption', 'dldump', 'dmetadata', 'dlattachment', 'dlauto_rename']:
         handler_dict[user_id] = False
         await query.answer()
         update_user_ldata(user_id, data[2][1:], {} if data[2] == 'dldump' else '')
