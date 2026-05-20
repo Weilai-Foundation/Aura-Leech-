@@ -1,6 +1,6 @@
 from hashlib import md5
 from time import strftime, gmtime, time
-from re import IGNORECASE, sub as re_sub, search as re_search
+from re import IGNORECASE, sub as re_sub, search as re_search, compile as re_compile, findall as re_findall
 from shlex import split as ssplit
 from natsort import natsorted
 from os import path as ospath
@@ -17,6 +17,222 @@ from bot.modules.mediainfo import parseinfo
 from bot.helper.ext_utils.bot_utils import cmd_exec, sync_to_async, get_readable_file_size, get_readable_time
 from bot.helper.ext_utils.fs_utils import ARCH_EXT, get_mime_type
 from bot.helper.ext_utils.telegraph_helper import telegraph
+
+
+def sanitize_filename(filename):
+    filename = re_sub(r'[/*?:"<>|]', '', filename)
+    return filename.strip().strip('.')
+
+
+def clean_filename(filename):
+    filename = re_sub(r'^\d+(_\d+)*_[A-Za-z0-9]+_', '', filename)
+    filename = filename.replace('_', ' ').replace('.', ' ')
+    filename = ' '.join(filename.split())
+    return filename
+
+
+# Pattern 1: S01E02 or S01EP02 or S01_E01
+pattern1 = re_compile(r'S(\d+)[._\s-]*(?:E|EP)(\d+)', IGNORECASE)
+
+# Pattern 2: S01 E02 or S01 EP02 or S01 - E01 or S01 - EP02 or S01_01
+pattern2 = re_compile(r'S(\d+)[._\s-]*(\d+)', IGNORECASE)
+
+# Pattern 3: Episode Number After "E" or "EP"
+pattern3 = re_compile(r'(?:[([<{]?\s*(?:E|EP)[._\s-](\d+)\s[)]>}]?)', IGNORECASE)
+
+# Pattern 3_2: episode number after - [hyphen]
+pattern3_2 = re_compile(r'(?:\s*-\s*(\d+)\s*)')
+
+# Pattern 4: S2 09 ex.
+pattern4 = re_compile(r'S(\d+)[^\d]*(\d+)', IGNORECASE)
+
+# Pattern X: Standalone Episode Number
+patternX = re_compile(r'(\d+)')
+
+# QUALITY PATTERNS
+# Pattern 5: 3-4 digits followed by 'p' as quality
+pattern5 = re_compile(r'(\d{3,4}p)', IGNORECASE)
+
+# Pattern 6: Find 4k in brackets or parentheses
+pattern6 = re_compile(r'[([<{]?\s4k\s[)]>}]?', IGNORECASE)
+
+# Pattern 7: Find 2k in brackets or parentheses
+pattern7 = re_compile(r'[([<{]?\s2k\s[)]>}]?', IGNORECASE)
+
+# Pattern 8: Find HdRip without spaces
+pattern8 = re_compile(r'[([<{]?\sHdRip\s[)]>}]?|\bHdRip\b', IGNORECASE)
+
+# Pattern 9: Find 4kX264 in brackets or parentheses
+pattern9 = re_compile(r'[([<{]?\s4kX264\s[)]>}]?', IGNORECASE)
+
+# Pattern 10: Find 4kx265 in brackets or parentheses
+pattern10 = re_compile(r'[([<{]?\s4kx265\s[)]>}]?', IGNORECASE)
+
+# SEASON PATTERNS
+# Pattern 11: S01 or S 01 or Season 01
+pattern11 = re_compile(r'S(?:eason)?[._\s-]*(\d+)', IGNORECASE)
+
+# AUDIO PATTERNS
+# Pattern 12: Dual Audio, Multi Audio, Hindi, English etc.
+pattern12 = re_compile(
+    r'[([<{]?\s*(Dual Audio|Multi Audio|Hindi|English|Tamil|Telugu|Malayalam|Kannada|Bengali|Gujarati|Punjabi|Marathi)\s*[)]>}]?', IGNORECASE)
+
+# MANGA PATTERNS
+# Pattern 13: Volume Number (V01, Vol 01, Volume 01)
+pattern13 = re_compile(r'V(?:ol(?:ume)?)?[._\s-]*(\d+)', IGNORECASE)
+
+# Pattern 14: Chapter Number (C01, Ch 01, Chapter 01)
+pattern14 = re_compile(r'C(?:h(?:apter)?)?[._\s-]*(\d+)', IGNORECASE)
+
+
+def extract_season(filename):
+    match = re_search(pattern11, filename)
+    if match:
+        return match.group(1)
+    return ""
+
+
+def extract_audio(filename):
+    match = re_search(pattern12, filename)
+    if match:
+        return match.group(1)
+    return ""
+
+
+def extract_volume(filename):
+    match = re_search(pattern13, filename)
+    if match:
+        return match.group(1)
+    return ""
+
+
+def extract_chapter(filename):
+    match = re_search(pattern14, filename)
+    if match:
+        return match.group(1)
+    return ""
+
+
+def extract_quality(filename):
+    # Try Quality Patterns
+    match5 = re_search(pattern5, filename)
+    if match5:
+        return match5.group(1)
+
+    match6 = re_search(pattern6, filename)
+    if match6:
+        return "4k"
+
+    match7 = re_search(pattern7, filename)
+    if match7:
+        return "2k"
+
+    match8 = re_search(pattern8, filename)
+    if match8:
+        return "HdRip"
+
+    match9 = re_search(pattern9, filename)
+    if match9:
+        return "4kX264"
+
+    match10 = re_search(pattern10, filename)
+    if match10:
+        return "4kx265"
+
+    return ""
+
+
+def extract_episode_number(filename):
+    # Prioritize explicit episode markers
+    match = re_search(pattern3, filename)
+    if match:
+        return match.group(1)
+
+    match = re_search(pattern1, filename)
+    if match:
+        return match.group(2)
+
+    match = re_search(pattern2, filename)
+    if match:
+        return match.group(2)
+
+    match = re_search(pattern3_2, filename)
+    if match:
+        return match.group(1)
+
+    match = re_search(pattern4, filename)
+    if match:
+        return match.group(2)
+
+    # Standalone numbers with filtering
+    matches = re_findall(r'(\d+)', filename)
+    for num in matches:
+        if 1900 <= int(num) <= 2100:  # Likely a year
+            continue
+        if num in ['480', '720', '1080', '2160']:  # Likely resolution
+            # Check if it's followed by 'p' or preceded by 'x'
+            idx = filename.find(num)
+            if idx + len(num) < len(filename) and filename[idx + len(num)].lower() == 'p':
+                continue
+            if idx > 0 and filename[idx-1].lower() == 'x':
+                continue
+        return num
+
+    return None
+
+
+def leech_auto_rename(filename):
+    name, ext = ospath.splitext(filename)
+    season = extract_season(name)
+    episode = extract_episode_number(name)
+    quality = extract_quality(name)
+    audio = extract_audio(name)
+    volume = extract_volume(name)
+    chapter = extract_chapter(name)
+
+    if not any([season, episode, quality, audio, volume, chapter]):
+        return filename
+
+    cleaned_name = clean_filename(name)
+
+    # Aggressively remove all matched patterns from cleaned_name
+    for p in [pattern1, pattern2, pattern3, pattern3_2, pattern4, pattern5, pattern6, pattern7, pattern8, pattern9, pattern10, pattern11, pattern12, pattern13, pattern14]:
+        cleaned_name = p.sub('', cleaned_name)
+
+    # Fallback removal for standalone episode/season/etc numbers
+    if episode:
+        cleaned_name = re_sub(rf'\b(E|EP)?[._\s-]*{episode}\b', '', cleaned_name, flags=IGNORECASE)
+    if season:
+        cleaned_name = re_sub(rf'\bS(eason)?[._\s-]*{season}\b', '', cleaned_name, flags=IGNORECASE)
+    if volume:
+        cleaned_name = re_sub(rf'\bV(ol(ume)?)?[._\s-]*{volume}\b', '', cleaned_name, flags=IGNORECASE)
+    if chapter:
+        cleaned_name = re_sub(rf'\bC(h(apter)?)?[._\s-]*{chapter}\b', '', cleaned_name, flags=IGNORECASE)
+
+    # Also remove standalone common words if left behind
+    cleaned_name = re_sub(r'\b(Season|Episode|EP|Vol|Volume|Ch|Chapter)\b', '', cleaned_name, flags=IGNORECASE)
+
+    cleaned_name = ' '.join(cleaned_name.split())
+
+    new_name = cleaned_name
+    if season:
+        new_name += f' S{season}'
+    if volume:
+        new_name += f' Vol {volume}'
+    if episode:
+        new_name += f' E{episode}'
+    if chapter:
+        new_name += f' Ch {chapter}'
+    if quality:
+        new_name += f' {quality}'
+    if audio:
+        new_name += f' {audio}'
+
+    if not new_name:
+        new_name = name
+
+    new_name = ' '.join(new_name.split())
+    return sanitize_filename(f"{new_name}{ext}")
 
 
 async def is_multi_streams(path):
@@ -250,6 +466,10 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
     lcaption = config_dict['LEECH_FILENAME_CAPTION'] if (val:=user_dict.get('lcaption', '')) == '' else val
  
     prefile_ = file_
+
+    if not isMirror and (user_dict.get('auto_rename') or 'auto_rename' not in user_dict and config_dict.get('AUTO_RENAME')):
+        file_ = leech_auto_rename(file_)
+
     #file_ = re_sub(r'www\S+', '', file_)
     
     # Remove URLs starting with "www"

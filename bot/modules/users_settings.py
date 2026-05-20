@@ -158,6 +158,7 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         split_size = get_readable_file_size(config_dict['LEECH_SPLIT_SIZE']) + ' (Default)' if user_dict.get('split_size', '') == '' else get_readable_file_size(user_dict['split_size'])
         equal_splits = 'Enabled' if user_dict.get('equal_splits', config_dict.get('EQUAL_SPLITS')) else 'Disabled'
         media_group = 'Enabled' if user_dict.get('media_group', config_dict.get('MEDIA_GROUP')) else 'Disabled'
+        auto_rename = 'Enabled' if user_dict.get('auto_rename', config_dict.get('AUTO_RENAME')) else 'Disabled'
         buttons.ibutton(f"{'✅️' if user_dict.get('split_size') else ''} Leech Splits", f"userset {user_id} split_size")
 
         lcaption = 'Not Exists' if (val:=user_dict.get('lcaption', config_dict.get('LEECH_FILENAME_CAPTION', ''))) == '' else val
@@ -184,6 +185,7 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         text = BotTheme('LEECH', NAME=name, DL=f"{dailyll} / {dailytlle}",
                 LTYPE=ltype, THUMB=thumbmsg, SPLIT_SIZE=split_size,
                 EQUAL_SPLIT=equal_splits, MEDIA_GROUP=media_group,
+                AUTO_RENAME=auto_rename,
                 LCAPTION=escape(lcaption), LPREFIX=escape(lprefix),
                 LSUFFIX=escape(lsuffix), LREMNAME=escape(lremname), 
                 LDUMP=ldump, METADATA=escape(metadata),
@@ -232,6 +234,10 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
                 buttons.ibutton("Disable Media Group", f"userset {user_id} mgroup", "header")
             else:
                 buttons.ibutton("Enable Media Group", f"userset {user_id} mgroup", "header")
+            if user_dict.get('auto_rename', False) or ('auto_rename' not in user_dict and config_dict.get('AUTO_RENAME')):
+                buttons.ibutton("Disable Auto Rename", f"userset {user_id} lrename", "header")
+            else:
+                buttons.ibutton("Enable Auto Rename", f"userset {user_id} lrename", "header")
         elif key in ['lprefix', 'lremname', 'lsuffix', 'lcaption', 'ldump', 'metadata', 'lattachment']:
             set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f'LEECH_FILENAME_{key[1:].upper()}', ''))) == '' else val
             if set_exist != 'Not Exists' and key == "ldump":
@@ -474,6 +480,13 @@ async def edit_user_settings(client, query):
     elif data[2] == "doc":
         update_user_ldata(user_id, 'as_doc', not user_dict.get('as_doc', False))
         await query.answer()
+        await update_user_settings(query, 'leech')
+        if DATABASE_URL:
+            await DbManger().update_user_data(user_id)
+    elif data[2] == 'lrename':
+        handler_dict[user_id] = False
+        await query.answer()
+        update_user_ldata(user_id, 'auto_rename', not user_dict.get('auto_rename', config_dict.get('AUTO_RENAME', False)))
         await update_user_settings(query, 'leech')
         if DATABASE_URL:
             await DbManger().update_user_data(user_id)
