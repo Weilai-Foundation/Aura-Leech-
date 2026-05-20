@@ -330,6 +330,9 @@ async def load_config():
     MEDIA_GROUP = environ.get('MEDIA_GROUP', '')
     MEDIA_GROUP = MEDIA_GROUP.lower() == 'true'
 
+    AUTO_RENAME = environ.get('AUTO_RENAME', '')
+    AUTO_RENAME = AUTO_RENAME.lower() == 'true'
+
     BASE_URL_PORT = environ.get('BASE_URL_PORT', '')
     BASE_URL_PORT = 80 if len(BASE_URL_PORT) == 0 else int(BASE_URL_PORT)
 
@@ -663,6 +666,7 @@ async def load_config():
                         'LOGIN_PASS': LOGIN_PASS,
                         'TOKEN_TIMEOUT': TOKEN_TIMEOUT,
                         'MEDIA_GROUP': MEDIA_GROUP,
+                        'AUTO_RENAME': AUTO_RENAME,
                         'MEGA_EMAIL': MEGA_EMAIL,
                         'MEGA_PASSWORD': MEGA_PASSWORD,
                         'MDL_TEMPLATE': MDL_TEMPLATE,

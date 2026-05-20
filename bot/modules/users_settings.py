@@ -179,6 +179,11 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         lattachment = 'Not Exists' if (val:=user_dict.get('lattachment', config_dict.get('ATTACHMENT', ''))) == '' else val
         buttons.ibutton(f"{'✅️' if lattachment != 'Not Exists' else ''} Leech Attachment", f"userset {user_id} lattachment")
 
+        if user_dict.get('auto_rename', False) or ('auto_rename' not in user_dict and config_dict.get('AUTO_RENAME')):
+            buttons.ibutton("Disable Auto Rename", f"userset {user_id} lrename")
+        else:
+            buttons.ibutton("Enable Auto Rename", f"userset {user_id} lrename")
+
         metadata = 'Not Exists' if (val:=user_dict.get('metadata', config_dict.get('METADATA', ''))) == '' else val
         buttons.ibutton(f"{'✅️' if metadata != 'Not Exists' else ''} Leech Metadata", f"userset {user_id} metadata")
 
@@ -234,10 +239,6 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
                 buttons.ibutton("Disable Media Group", f"userset {user_id} mgroup", "header")
             else:
                 buttons.ibutton("Enable Media Group", f"userset {user_id} mgroup", "header")
-            if user_dict.get('auto_rename', False) or ('auto_rename' not in user_dict and config_dict.get('AUTO_RENAME')):
-                buttons.ibutton("Disable Auto Rename", f"userset {user_id} lrename", "header")
-            else:
-                buttons.ibutton("Enable Auto Rename", f"userset {user_id} lrename", "header")
         elif key in ['lprefix', 'lremname', 'lsuffix', 'lcaption', 'ldump', 'metadata', 'lattachment']:
             set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f'LEECH_FILENAME_{key[1:].upper()}', ''))) == '' else val
             if set_exist != 'Not Exists' and key == "ldump":
