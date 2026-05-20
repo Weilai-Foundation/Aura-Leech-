@@ -778,7 +778,7 @@ async def set_format(client, message):
         if DATABASE_URL:
             await DbManger().update_user_data(user_id)
     else:
-        await sendMessage(message, f"Hᴇʀᴇ'ꜱ ʜᴏᴡ ᴛᴏ ᴜꜱᴇ ɪᴛ /{BotCommands.FormatCommand}\n\n"
+        await sendMessage(message, f"How To Use This Command/{BotCommands.FormatCommand}\n\n"
                                    "SETUP AUTO RENAME FORMAT\n\n"
                                    "Use These Keywords To Setup Custom File Name\n\n"
                                    "➝ {title} :- to replace anime or series title name\n"
@@ -788,9 +788,7 @@ async def set_format(client, message):
                                    "➝ {chapter} :- to replace manga chapter number\n"
                                    "➝ {audio} :- auto label from streams: Sub, Dual, or Multi\n\n"
                                    "‣ Example: /format S{season} E{episode} - {title} [{quality}] [{audio}]\n"
-                                   "‣ Manga: /format {title} {chapter} @index_Station\n\n"
-                                   "Audio labels: 1 audio + subtitles = Sub, 2 audio = Dual, 3+ audio = Multi.\n\n"
-                                   "Note: Don't put .mkv or .mp4 at the end.")
+                                   "‣ Manga: /format {title} {chapter} @Team_Weilai\n\n"")
 
 
 bot.add_handler(MessageHandler(set_format, filters=command(
