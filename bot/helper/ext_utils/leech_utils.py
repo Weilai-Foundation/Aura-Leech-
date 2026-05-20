@@ -9,6 +9,7 @@ from aioshutil import rmtree as aiormtree
 from contextlib import suppress
 from asyncio import create_subprocess_exec, create_task, gather, Semaphore
 from asyncio.subprocess import PIPE
+from json import loads as json_loads
 from telegraph import upload_file
 from langcodes import Language
 
@@ -181,18 +182,29 @@ def extract_episode_number(filename):
     return None
 
 
-def leech_auto_rename(filename, user_id):
+async def leech_auto_rename(filename, user_id, dirpath=None):
     user_dict = user_data.get(user_id, {})
     tag = user_dict.get('lauto_rename') or config_dict.get('LEECH_AUTO_RENAME_FORMAT')
     name, ext = ospath.splitext(filename)
     season = extract_season(name)
     episode = extract_episode_number(name)
     quality = extract_quality(name)
-    audio = extract_audio(name)
+    if dirpath:
+        audio = await get_audio_label(ospath.join(dirpath, filename))
+    if not dirpath or not audio:
+        audio = extract_audio(name)
+        if audio:
+            if "dual" in audio.lower():
+                audio = "Dual"
+            elif "multi" in audio.lower():
+                audio = "Multi"
+            else:
+                audio = "Sub"
+
     volume = extract_volume(name)
     chapter = extract_chapter(name)
 
-    if not any([season, episode, quality, audio, volume, chapter]):
+    if not any([season, episode, quality, audio, volume, chapter]) and not tag:
         return filename
 
     cleaned_name = clean_filename(name)
@@ -218,9 +230,12 @@ def leech_auto_rename(filename, user_id):
 
     if tag:
         try:
-            return sanitize_filename(tag.format(title=cleaned_name, season=season, episode=episode,
-                                                quality=quality, audio=audio, volume=volume,
-                                                chapter=chapter, ext=ext))
+            new_name = tag.format(title=cleaned_name, season=season, episode=episode,
+                                  quality=quality, audio=audio, volume=volume,
+                                  chapter=chapter, ext=ext)
+            if ext and not new_name.lower().endswith(ext.lower()):
+                new_name += ext
+            return sanitize_filename(new_name)
         except Exception as e:
             LOGGER.error(f"Error while formatting auto rename: {e}")
 
@@ -254,7 +269,7 @@ async def is_multi_streams(path):
     except Exception as e:
         LOGGER.error(f'Get Video Streams: {e}. Mostly File not found!')
         return False
-    fields = eval(result[0]).get('streams')
+    fields = json_loads(result[0]).get('streams')
     if fields is None:
         LOGGER.error(f"get_video_streams: {result}")
         return False
@@ -268,6 +283,35 @@ async def is_multi_streams(path):
     return videos > 1 or audios > 1
 
 
+async def get_audio_label(path):
+    try:
+        result = await cmd_exec(["ffprobe", "-hide_banner", "-loglevel", "error", "-print_format",
+                                 "json", "-show_streams", path])
+    except Exception as e:
+        LOGGER.error(f'Get Audio Label: {e}. Mostly File not found!')
+        return ""
+    try:
+        fields = json_loads(result[0]).get('streams')
+    except Exception:
+        return ""
+    if fields is None:
+        return ""
+    audios = 0
+    subs = 0
+    for stream in fields:
+        if stream.get('codec_type') == 'audio':
+            audios += 1
+        elif stream.get('codec_type') == 'subtitle':
+            subs += 1
+    if audios == 1 and subs >= 1:
+        return "Sub"
+    elif audios == 2:
+        return "Dual"
+    elif audios >= 3:
+        return "Multi"
+    return ""
+
+
 async def get_media_info(path, metadata=False):
     try:
         result = await cmd_exec(["ffprobe", "-hide_banner", "-loglevel", "error", "-print_format",
@@ -277,7 +321,7 @@ async def get_media_info(path, metadata=False):
     except Exception as e:
         LOGGER.error(f'Media Info: {e}. Mostly File not found!')
         return (0, "", "", "") if metadata else (0, None, None)
-    ffresult = eval(result[0])
+    ffresult = json_loads(result[0])
     fields = ffresult.get('format')
     if fields is None:
         LOGGER.error(f"Media Info Sections: {result}")
@@ -325,7 +369,7 @@ async def get_document_type(path):
     except Exception as e:
         LOGGER.error(f'Get Document Type: {e}. Mostly File not found!')
         return is_video, is_audio, is_image
-    fields = eval(result[0]).get('streams')
+    fields = json_loads(result[0]).get('streams')
     if fields is None:
         LOGGER.error(f"get_document_type: {result}")
         return is_video, is_audio, is_image
@@ -478,7 +522,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
     prefile_ = file_
 
     if not isMirror and (user_dict.get('auto_rename') or 'auto_rename' not in user_dict and config_dict.get('AUTO_RENAME')):
-        file_ = leech_auto_rename(file_, user_id)
+        file_ = await leech_auto_rename(file_, user_id, dirpath)
 
     #file_ = re_sub(r'www\S+', '', file_)
     
@@ -492,7 +536,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
     if remname:
         if not remname.startswith('|'):
             remname = f"|{remname}"
-        remname = remname.replace('\s', ' ')
+        remname = remname.replace('\\s', ' ')
         slit = remname.split("|")
         __newFileName = ospath.splitext(file_)[0]
         for rep in range(1, len(slit)):
@@ -508,13 +552,13 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
 
     nfile_ = file_
     if prefix:
-        nfile_ = prefix.replace('\s', ' ') + file_
-        prefix = re_sub(r'<.*?>', '', prefix).replace('\s', ' ')
+        nfile_ = prefix.replace('\\s', ' ') + file_
+        prefix = re_sub(r'<.*?>', '', prefix).replace('\\s', ' ')
         if not file_.startswith(prefix):
             file_ = f"{prefix}{file_}"
 
     if suffix and not isMirror:
-        suffix = suffix.replace('\s', ' ')
+        suffix = suffix.replace('\\s', ' ')
         sufLen = len(suffix)
         fileDict = file_.split('.')
         _extIn = 1 + len(fileDict[-1])
@@ -528,7 +572,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
             )
         file_ = _newExtFileName
     elif suffix:
-        suffix = suffix.replace('\s', ' ')
+        suffix = suffix.replace('\\s', ' ')
         file_ = f"{ospath.splitext(file_)[0]}{suffix}{ospath.splitext(file_)[1]}" if '.' in file_ else f"{file_}{suffix}"
 
 
@@ -538,7 +582,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
         def lowerVars(match):
             return f"{{{match.group(1).lower()}}}"
 
-        lcaption = lcaption.replace('\|', '%%').replace('\{', '&%&').replace('\}', '$%$').replace('\s', ' ')
+        lcaption = lcaption.replace('\\|', '%%').replace('\\{', '&%&').replace('\\}', '$%$').replace('\\s', ' ')
         slit = lcaption.split("|")
         slit[0] = re_sub(r'\{([^}]+)\}', lowerVars, slit[0])
         up_path = ospath.join(dirpath, prefile_)

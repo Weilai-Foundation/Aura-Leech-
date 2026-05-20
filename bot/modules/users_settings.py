@@ -768,4 +768,31 @@ bot.add_handler(MessageHandler(send_users_settings, filters=command(
     BotCommands.UsersCommand) & CustomFilters.sudo))
 bot.add_handler(MessageHandler(user_settings, filters=command(
     BotCommands.UserSetCommand) & CustomFilters.authorized_uset))
+async def set_format(client, message):
+    user_id = message.from_user.id
+    handler_dict[user_id] = False
+    if len(message.command) > 1:
+        value = message.text.split(maxsplit=1)[1]
+        update_user_ldata(user_id, 'lauto_rename', value)
+        await sendMessage(message, f"Auto Rename Format Updated to: <code>{value}</code>")
+        if DATABASE_URL:
+            await DbManger().update_user_data(user_id)
+    else:
+        await sendMessage(message, f"Hᴇʀᴇ'ꜱ ʜᴏᴡ ᴛᴏ ᴜꜱᴇ ɪᴛ /{BotCommands.FormatCommand}\n\n"
+                                   "SETUP AUTO RENAME FORMAT\n\n"
+                                   "Use These Keywords To Setup Custom File Name\n\n"
+                                   "➝ {title} :- to replace anime or series title name\n"
+                                   "➝ {season} :- to replace season number\n"
+                                   "➝ {episode} :- to replace episode number\n"
+                                   "➝ {quality} :- to replace video resolution\n"
+                                   "➝ {chapter} :- to replace manga chapter number\n"
+                                   "➝ {audio} :- auto label from streams: Sub, Dual, or Multi\n\n"
+                                   "‣ Example: /format S{season} E{episode} - {title} [{quality}] [{audio}]\n"
+                                   "‣ Manga: /format {title} {chapter} @index_Station\n\n"
+                                   "Audio labels: 1 audio + subtitles = Sub, 2 audio = Dual, 3+ audio = Multi.\n\n"
+                                   "Note: Don't put .mkv or .mp4 at the end.")
+
+
+bot.add_handler(MessageHandler(set_format, filters=command(
+    BotCommands.FormatCommand) & CustomFilters.authorized_uset))
 bot.add_handler(CallbackQueryHandler(edit_user_settings, filters=regex("^userset")))
