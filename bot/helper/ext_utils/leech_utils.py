@@ -7,6 +7,7 @@ from os import path as ospath
 from aiofiles.os import remove as aioremove, path as aiopath, mkdir, makedirs, listdir
 from aioshutil import rmtree as aiormtree
 from contextlib import suppress
+from json import loads as json_loads
 from asyncio import create_subprocess_exec, create_task, gather, Semaphore
 from asyncio.subprocess import PIPE
 from telegraph import upload_file
@@ -28,7 +29,7 @@ async def is_multi_streams(path):
     except Exception as e:
         LOGGER.error(f'Get Video Streams: {e}. Mostly File not found!')
         return False
-    fields = eval(result[0]).get('streams')
+    fields = json_loads(result[0]).get('streams')
     if fields is None:
         LOGGER.error(f"get_video_streams: {result}")
         return False
@@ -51,7 +52,7 @@ async def get_media_info(path, metadata=False):
     except Exception as e:
         LOGGER.error(f'Media Info: {e}. Mostly File not found!')
         return (0, "", "", "") if metadata else (0, None, None)
-    ffresult = eval(result[0])
+    ffresult = json_loads(result[0])
     fields = ffresult.get('format')
     if fields is None:
         LOGGER.error(f"Media Info Sections: {result}")
@@ -99,7 +100,7 @@ async def get_document_type(path):
     except Exception as e:
         LOGGER.error(f'Get Document Type: {e}. Mostly File not found!')
         return is_video, is_audio, is_image
-    fields = eval(result[0]).get('streams')
+    fields = json_loads(result[0]).get('streams')
     if fields is None:
         LOGGER.error(f"get_document_type: {result}")
         return is_video, is_audio, is_image
@@ -244,7 +245,7 @@ async def split_file(path, size, file_, dirpath, split_size, listener, start_tim
 async def format_filename(file_, user_id, dirpath=None, isMirror=False):
     user_dict = user_data.get(user_id, {})
     if user_dict.get('auto_rename') or config_dict.get('AUTO_RENAME'):
-        file_ = auto_rename(file_)
+        file_ = await auto_rename(file_)
     ftag, ctag = ('m', 'MIRROR') if isMirror else ('l', 'LEECH')
     prefix = config_dict[f'{ctag}_FILENAME_PREFIX'] if (val:=user_dict.get(f'{ftag}prefix', '')) == '' else val
     remname = config_dict[f'{ctag}_FILENAME_REMNAME'] if (val:=user_dict.get(f'{ftag}remname', '')) == '' else val
@@ -264,7 +265,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
     if remname:
         if not remname.startswith('|'):
             remname = f"|{remname}"
-        remname = remname.replace('\s', ' ')
+        remname = remname.replace('\\s', ' ')
         slit = remname.split("|")
         __newFileName = ospath.splitext(file_)[0]
         for rep in range(1, len(slit)):
@@ -280,13 +281,13 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
 
     nfile_ = file_
     if prefix:
-        nfile_ = prefix.replace('\s', ' ') + file_
-        prefix = re_sub(r'<.*?>', '', prefix).replace('\s', ' ')
+        nfile_ = prefix.replace('\\s', ' ') + file_
+        prefix = re_sub(r'<.*?>', '', prefix).replace('\\s', ' ')
         if not file_.startswith(prefix):
             file_ = f"{prefix}{file_}"
 
     if suffix and not isMirror:
-        suffix = suffix.replace('\s', ' ')
+        suffix = suffix.replace('\\s', ' ')
         sufLen = len(suffix)
         fileDict = file_.split('.')
         _extIn = 1 + len(fileDict[-1])
@@ -300,7 +301,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
             )
         file_ = _newExtFileName
     elif suffix:
-        suffix = suffix.replace('\s', ' ')
+        suffix = suffix.replace('\\s', ' ')
         file_ = f"{ospath.splitext(file_)[0]}{suffix}{ospath.splitext(file_)[1]}" if '.' in file_ else f"{file_}{suffix}"
 
 
@@ -310,7 +311,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
         def lowerVars(match):
             return f"{{{match.group(1).lower()}}}"
 
-        lcaption = lcaption.replace('\|', '%%').replace('\{', '&%&').replace('\}', '$%$').replace('\s', ' ')
+        lcaption = lcaption.replace('\\|', '%%').replace('\\{', '&%&').replace('\\}', '$%$').replace('\\s', ' ')
         slit = lcaption.split("|")
         slit[0] = re_sub(r'\{([^}]+)\}', lowerVars, slit[0])
         up_path = ospath.join(dirpath, prefile_)
@@ -395,7 +396,9 @@ def sanitize_filename(filename):
 
 def clean_filename(filename):
     filename = re_sub(r'^\d+_\d+_[A-Za-z0-9]+_', '', filename)
-    filename = filename.replace('_', ' ')
+    filename = re_sub(r'(www\.\S+|https?://\S+)', '', filename, flags=IGNORECASE)
+    filename = re_sub(r'@[a-zA-Z0-9_]+', '', filename)
+    filename = filename.replace('_', ' ').replace('.', ' ')
     filename = ' '.join(filename.split())
     return filename
 
@@ -480,7 +483,7 @@ def extract_episode_number(filename):
     return None
 
 
-def auto_rename(filename):
+async def auto_rename(filename):
     if not filename:
         return filename
     extension = ospath.splitext(filename)[1]
@@ -497,22 +500,26 @@ def auto_rename(filename):
 
     new_name = clean_name
     if season:
-        if f"S{season}" not in new_name:
+        season = season.zfill(2) if season.isdigit() else season
+        if f"S{season}" not in new_name.upper() and f"SEASON {season}" not in new_name.upper():
             new_name += f" S{season}"
     if episode:
-        if f"E{episode}" not in new_name and f"EP{episode}" not in new_name:
+        episode = episode.zfill(2) if episode.isdigit() else episode
+        if f"E{episode}" not in new_name.upper() and f"EP{episode}" not in new_name.upper():
             new_name += f" E{episode}"
     if volume:
-        if f"V{volume}" not in new_name and f"Vol.{volume}" not in new_name:
+        volume = volume.zfill(2) if volume.isdigit() else volume
+        if f"V{volume}" not in new_name.upper() and f"VOL.{volume}" not in new_name.upper():
             new_name += f" Vol.{volume}"
     if chapter:
-        if f"C{chapter}" not in new_name and f"Ch.{chapter}" not in new_name:
+        chapter = chapter.zfill(2) if chapter.isdigit() else chapter
+        if f"C{chapter}" not in new_name.upper() and f"CH.{chapter}" not in new_name.upper():
             new_name += f" Ch.{chapter}"
     if audio:
-        if audio not in new_name:
+        if audio.upper() not in new_name.upper():
             new_name += f" {audio}"
     if quality:
-        if quality not in new_name:
+        if quality.upper() not in new_name.upper():
             new_name += f" {quality}"
 
     return sanitize_filename(new_name) + extension
