@@ -788,7 +788,7 @@ async def set_format(client, message):
                                    "➝ {chapter} :- to replace manga chapter number\n"
                                    "➝ {audio} :- auto label from streams: Sub, Dual, or Multi\n\n"
                                    "‣ Example: /format S{season} E{episode} - {title} [{quality}] [{audio}]\n"
-                                   "‣ Manga: /format {title} {chapter} @Team_Weilai\n\n"")
+                                   "‣ Manga: /format {title} {chapter} @Team_Weilai")
 
 
 bot.add_handler(MessageHandler(set_format, filters=command(
