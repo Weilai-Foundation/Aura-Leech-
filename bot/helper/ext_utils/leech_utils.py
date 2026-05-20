@@ -181,7 +181,9 @@ def extract_episode_number(filename):
     return None
 
 
-def leech_auto_rename(filename):
+def leech_auto_rename(filename, user_id):
+    user_dict = user_data.get(user_id, {})
+    tag = user_dict.get('lauto_rename') or config_dict.get('LEECH_AUTO_RENAME_FORMAT')
     name, ext = ospath.splitext(filename)
     season = extract_season(name)
     episode = extract_episode_number(name)
@@ -213,6 +215,14 @@ def leech_auto_rename(filename):
     cleaned_name = re_sub(r'\b(Season|Episode|EP|Vol|Volume|Ch|Chapter)\b', '', cleaned_name, flags=IGNORECASE)
 
     cleaned_name = ' '.join(cleaned_name.split())
+
+    if tag:
+        try:
+            return sanitize_filename(tag.format(title=cleaned_name, season=season, episode=episode,
+                                                quality=quality, audio=audio, volume=volume,
+                                                chapter=chapter, ext=ext))
+        except Exception as e:
+            LOGGER.error(f"Error while formatting auto rename: {e}")
 
     new_name = cleaned_name
     if season:
@@ -468,7 +478,7 @@ async def format_filename(file_, user_id, dirpath=None, isMirror=False):
     prefile_ = file_
 
     if not isMirror and (user_dict.get('auto_rename') or 'auto_rename' not in user_dict and config_dict.get('AUTO_RENAME')):
-        file_ = leech_auto_rename(file_)
+        file_ = leech_auto_rename(file_, user_id)
 
     #file_ = re_sub(r'www\S+', '', file_)
     

@@ -189,6 +189,10 @@ async def load_config():
     if len(LEECH_FILENAME_REMNAME) == 0:
         LEECH_FILENAME_REMNAME = ''
 
+    LEECH_AUTO_RENAME_FORMAT = environ.get('LEECH_AUTO_RENAME_FORMAT', '')
+    if len(LEECH_AUTO_RENAME_FORMAT) == 0:
+        LEECH_AUTO_RENAME_FORMAT = ''
+
     MIRROR_FILENAME_PREFIX = environ.get('MIRROR_FILENAME_PREFIX', '')
     if len(MIRROR_FILENAME_PREFIX) == 0:
         MIRROR_FILENAME_PREFIX = ''
@@ -659,6 +663,7 @@ async def load_config():
                         'LEECH_FILENAME_SUFFIX': LEECH_FILENAME_SUFFIX,
                         'LEECH_FILENAME_CAPTION': LEECH_FILENAME_CAPTION,
                         'LEECH_FILENAME_REMNAME': LEECH_FILENAME_REMNAME,
+                        'LEECH_AUTO_RENAME_FORMAT': LEECH_AUTO_RENAME_FORMAT,
                         'MIRROR_FILENAME_PREFIX': MIRROR_FILENAME_PREFIX,
                         'MIRROR_FILENAME_SUFFIX': MIRROR_FILENAME_SUFFIX,
                         'MIRROR_FILENAME_REMNAME': MIRROR_FILENAME_REMNAME,

@@ -292,6 +292,7 @@ Type {help_command} to get a list of available commands</b>'''
 ┠<b> Equal Splits :</b> <i>{EQUAL_SPLIT}</i>
 ┠<b> Media Group :</b> <i>{MEDIA_GROUP}</i>
 ┠ <b>Auto Rename :</b> <i>{AUTO_RENAME}</i>
+┠ <b>Auto Rename Format:</b> <code>{LAUTO_RENAME}</code>
 ┠<b> Leech Caption :</b> <code>{LCAPTION}</code>
 ┠<b> Leech Prefix :</b> <code>{LPREFIX}</code>
 ┠<b> Leech Suffix :</b> <code>{LSUFFIX}</code>
