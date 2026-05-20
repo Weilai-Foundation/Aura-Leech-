@@ -12,7 +12,7 @@ from html import escape
 from uuid import uuid4
 from subprocess import run as srun
 from psutil import disk_usage, disk_io_counters, Process, cpu_percent, swap_memory, cpu_count, cpu_freq, getloadavg, virtual_memory, net_io_counters, boot_time
-from asyncio import create_subprocess_exec, create_subprocess_shell, run_coroutine_threadsafe, sleep
+from asyncio import create_subprocess_exec, create_subprocess_shell, run_coroutine_threadsafe, sleep, wrap_future
 from asyncio.subprocess import PIPE
 from functools import partial, wraps
 from concurrent.futures import ThreadPoolExecutor
@@ -477,14 +477,14 @@ async def sync_to_async(func, *args, wait=True, **kwargs):
 
 def async_to_sync(func, *args, wait=True, **kwargs):
     future = run_coroutine_threadsafe(func(*args, **kwargs), bot_loop)
-    return future.result() if wait else future
+    return future.result() if wait else wrap_future(future)
 
 
 def new_thread(func):
     @wraps(func)
     def wrapper(*args, wait=False, **kwargs):
         future = run_coroutine_threadsafe(func(*args, **kwargs), bot_loop)
-        return future.result() if wait else future
+        return future.result() if wait else wrap_future(future)
     return wrapper
 
 

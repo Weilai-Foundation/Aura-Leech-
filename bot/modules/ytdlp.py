@@ -6,6 +6,7 @@ from aiohttp import ClientSession
 from aiofiles.os import path as aiopath
 from yt_dlp import YoutubeDL
 from functools import partial
+from json import loads as json_loads
 from time import time
 
 from bot import DOWNLOAD_DIR, bot, categories_dict, config_dict, user_data, LOGGER
@@ -489,8 +490,8 @@ async def _ytdl(client, message, isLeech=False, sameDir=None, bulk=[]):
                 value = True
             elif value.lower() == 'false':
                 value = False
-            elif value.startswith(('{', '[', '(')) and value.endswith(('}', ']', ')')):
-                value = eval(value)
+            elif value.startswith(('{', '[')) and value.endswith(('}', ']')):
+                value = json_loads(value)
             options[key] = value
 
         options['playlist_items'] = '0'

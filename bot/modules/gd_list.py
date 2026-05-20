@@ -49,7 +49,7 @@ async def select_type(_, query):
         return await query.answer(text="Not Yours!", show_alert=True)
     elif data[2] == 'rec':
         await query.answer()
-        isRecursive = not bool(eval(data[3]))
+        isRecursive = data[3].lower() != 'true'
         buttons = await list_buttons(user_id, isRecursive)
         return await editMessage(message, '<b>Choose drive list options:</b>', buttons)
     elif data[2] == 'cancel':
@@ -57,7 +57,7 @@ async def select_type(_, query):
         return await editMessage(message, "<b>List has been canceled!</b>")
     await query.answer()
     item_type = data[2]
-    isRecursive = eval(data[3])
+    isRecursive = data[3].lower() == 'true'
     await editMessage(message, BotTheme('LIST_SEARCHING', NAME=key))
     await _list_drive(key, message, user_id, item_type, isRecursive)
 

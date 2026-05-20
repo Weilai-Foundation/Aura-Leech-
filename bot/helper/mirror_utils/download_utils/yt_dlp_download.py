@@ -4,6 +4,7 @@ from secrets import token_hex
 from logging import getLogger
 from yt_dlp import YoutubeDL, DownloadError
 from re import search as re_search
+from json import loads as json_loads
 
 from bot import download_dict_lock, download_dict, non_queued_dl, queue_dict_lock, bot_cache
 from bot.helper.telegram_helper.message_utils import sendStatusMessage
@@ -296,8 +297,8 @@ class YoutubeDLHelper:
                 value = True
             elif value.lower() == 'false':
                 value = False
-            elif value.startswith(('{', '[', '(')) and value.endswith(('}', ']', ')')):
-                value = eval(value)
+            elif value.startswith(('{', '[')) and value.endswith(('}', ']')):
+                value = json_loads(value)
 
             if key == 'postprocessors':
                 if isinstance(value, list):

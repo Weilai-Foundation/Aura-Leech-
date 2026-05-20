@@ -2,6 +2,7 @@
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.filters import command, regex
 from aiohttp import ClientSession
+from json import loads as json_loads
 from html import escape
 from urllib.parse import quote
 
@@ -23,7 +24,10 @@ async def initiate_search_tools():
     qb_plugins = await sync_to_async(qbclient.search_plugins)
     if SEARCH_PLUGINS := config_dict['SEARCH_PLUGINS']:
         globals()['PLUGINS'] = []
-        src_plugins = eval(SEARCH_PLUGINS)
+        try:
+            src_plugins = json_loads(SEARCH_PLUGINS)
+        except:
+            src_plugins = eval(SEARCH_PLUGINS)
         if qb_plugins:
             names = [plugin['name'] for plugin in qb_plugins]
             await sync_to_async(qbclient.search_uninstall_plugin, names=names)

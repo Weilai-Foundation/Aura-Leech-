@@ -2,6 +2,7 @@
 from logging import getLogger, ERROR
 from time import time
 from pickle import load as pload
+from json import loads as json_loads
 from os import makedirs, path as ospath, listdir, remove as osremove
 from io import FileIO
 from re import search as re_search
@@ -357,7 +358,7 @@ class GoogleDriveHelper:
                     retries += 1
                     continue
                 if err.resp.get('content-type', '').startswith('application/json'):
-                    reason = eval(err.content).get(
+                    reason = json_loads(err.content).get(
                         'error').get('errors')[0].get('reason')
                     if reason not in [
                         'userRateLimitExceeded',
@@ -480,7 +481,7 @@ class GoogleDriveHelper:
             return self.__service.files().copy(fileId=file_id, body=body, supportsAllDrives=True).execute()
         except HttpError as err:
             if err.resp.get('content-type', '').startswith('application/json'):
-                reason = eval(err.content).get(
+                reason = json_loads(err.content).get(
                     'error').get('errors')[0].get('reason')
                 if reason not in ['userRateLimitExceeded', 'dailyLimitExceeded', 'cannotCopyFile']:
                     raise err
@@ -818,7 +819,7 @@ class GoogleDriveHelper:
                     retries += 1
                     continue
                 if err.resp.get('content-type', '').startswith('application/json'):
-                    reason = eval(err.content).get(
+                    reason = json_loads(err.content).get(
                         'error').get('errors')[0].get('reason')
                     if reason not in [
                         'downloadQuotaExceeded',
