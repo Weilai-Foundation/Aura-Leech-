@@ -27,7 +27,7 @@ def sanitize_filename(filename):
 
 def clean_filename(filename):
     filename = re_sub(r'^\d+(_\d+)*_[A-Za-z0-9]+_', '', filename)
-    filename = filename.replace('_', ' ').replace('.', ' ')
+    filename = filename.replace('_', ' ')
     filename = ' '.join(filename.split())
     return filename
 
@@ -39,7 +39,7 @@ pattern1 = re_compile(r'S(\d+)[._\s-]*(?:E|EP)(\d+)', IGNORECASE)
 pattern2 = re_compile(r'S(\d+)[._\s-]*(\d+)', IGNORECASE)
 
 # Pattern 3: Episode Number After "E" or "EP"
-pattern3 = re_compile(r'(?:[([<{]?\s*(?:E|EP)[._\s-](\d+)\s[)]>}]?)', IGNORECASE)
+pattern3 = re_compile(r'(?:[[({<]?\s*(?:E|EP)[._\s-](\d+)\s*[]}>)]?)', IGNORECASE)
 
 # Pattern 3_2: episode number after - [hyphen]
 pattern3_2 = re_compile(r'(?:\s*-\s*(\d+)\s*)')
@@ -55,19 +55,19 @@ patternX = re_compile(r'(\d+)')
 pattern5 = re_compile(r'(\d{3,4}p)', IGNORECASE)
 
 # Pattern 6: Find 4k in brackets or parentheses
-pattern6 = re_compile(r'[([<{]?\s4k\s[)]>}]?', IGNORECASE)
+pattern6 = re_compile(r'[[({<]?\s*4k\s*[]}>)]?', IGNORECASE)
 
 # Pattern 7: Find 2k in brackets or parentheses
-pattern7 = re_compile(r'[([<{]?\s2k\s[)]>}]?', IGNORECASE)
+pattern7 = re_compile(r'[[({<]?\s*2k\s*[]}>)]?', IGNORECASE)
 
 # Pattern 8: Find HdRip without spaces
-pattern8 = re_compile(r'[([<{]?\sHdRip\s[)]>}]?|\bHdRip\b', IGNORECASE)
+pattern8 = re_compile(r'[[({<]?\s*HdRip\s*[]}>)]?|\bHdRip\b', IGNORECASE)
 
 # Pattern 9: Find 4kX264 in brackets or parentheses
-pattern9 = re_compile(r'[([<{]?\s4kX264\s[)]>}]?', IGNORECASE)
+pattern9 = re_compile(r'[[({<]?\s*4kX264\s*[]}>)]?', IGNORECASE)
 
 # Pattern 10: Find 4kx265 in brackets or parentheses
-pattern10 = re_compile(r'[([<{]?\s4kx265\s[)]>}]?', IGNORECASE)
+pattern10 = re_compile(r'[[({<]?\s*4kx265\s*[]}>)]?', IGNORECASE)
 
 # SEASON PATTERNS
 # Pattern 11: S01 or S 01 or Season 01
@@ -76,7 +76,7 @@ pattern11 = re_compile(r'S(?:eason)?[._\s-]*(\d+)', IGNORECASE)
 # AUDIO PATTERNS
 # Pattern 12: Dual Audio, Multi Audio, Hindi, English etc.
 pattern12 = re_compile(
-    r'[([<{]?\s*(Dual Audio|Multi Audio|Hindi|English|Tamil|Telugu|Malayalam|Kannada|Bengali|Gujarati|Punjabi|Marathi)\s*[)]>}]?', IGNORECASE)
+    r'[[({<]?\s*(Dual Audio|Multi Audio|Hindi|English|Tamil|Telugu|Malayalam|Kannada|Bengali|Gujarati|Punjabi|Marathi|Dual-Audio)\s*[]}>)]?', IGNORECASE)
 
 # MANGA PATTERNS
 # Pattern 13: Volume Number (V01, Vol 01, Volume 01)
@@ -143,56 +143,35 @@ def extract_quality(filename):
     return ""
 
 
-def extract_episode_number(filename):
-    # Prioritize explicit episode markers
-    match = re_search(pattern3, filename)
-    if match:
-        return match.group(1)
-
-    match = re_search(pattern1, filename)
-    if match:
-        return match.group(2)
-
-    match = re_search(pattern2, filename)
-    if match:
-        return match.group(2)
-
-    match = re_search(pattern3_2, filename)
-    if match:
-        return match.group(1)
-
-    match = re_search(pattern4, filename)
-    if match:
-        return match.group(2)
-
-    # Standalone numbers with filtering
-    matches = re_findall(r'(\d+)', filename)
-    for num in matches:
-        if 1900 <= int(num) <= 2100:  # Likely a year
-            continue
-        if num in ['480', '720', '1080', '2160']:  # Likely resolution
-            # Check if it's followed by 'p' or preceded by 'x'
-            idx = filename.find(num)
-            if idx + len(num) < len(filename) and filename[idx + len(num)].lower() == 'p':
-                continue
-            if idx > 0 and filename[idx-1].lower() == 'x':
-                continue
-        return num
-
-    return None
+def extract_episode(filename):
+    for pattern in [pattern1, pattern2, pattern3, pattern3_2, pattern4, patternX]:
+        match = re_search(pattern, filename)
+        if match:
+            if pattern in [pattern1, pattern2, pattern4]:
+                return match.group(2)
+            return match.group(1)
+    return ""
 
 
 async def leech_auto_rename(filename, user_id, dirpath=None):
     user_dict = user_data.get(user_id, {})
     tag = user_dict.get('lauto_rename') or config_dict.get('LEECH_AUTO_RENAME_FORMAT')
     name, ext = ospath.splitext(filename)
-    season = extract_season(name)
-    episode = extract_episode_number(name)
-    quality = extract_quality(name)
+
+    cleaned_name = clean_filename(name)
+    season = extract_season(cleaned_name)
+    episode = extract_episode(cleaned_name)
+    quality = extract_quality(cleaned_name)
+    volume = extract_volume(cleaned_name)
+    chapter = extract_chapter(cleaned_name)
+
     if dirpath:
         audio = await get_audio_label(ospath.join(dirpath, filename))
-    if not dirpath or not audio:
-        audio = extract_audio(name)
+    else:
+        audio = ""
+
+    if not audio:
+        audio = extract_audio(cleaned_name).replace("-", " ")
         if audio:
             if "dual" in audio.lower():
                 audio = "Dual"
@@ -201,45 +180,44 @@ async def leech_auto_rename(filename, user_id, dirpath=None):
             else:
                 audio = "Sub"
 
-    volume = extract_volume(name)
-    chapter = extract_chapter(name)
-
     if not any([season, episode, quality, audio, volume, chapter]) and not tag:
         return filename
 
-    cleaned_name = clean_filename(name)
-
-    # Aggressively remove all matched patterns from cleaned_name
-    for p in [pattern1, pattern2, pattern3, pattern3_2, pattern4, pattern5, pattern6, pattern7, pattern8, pattern9, pattern10, pattern11, pattern12, pattern13, pattern14]:
-        cleaned_name = p.sub('', cleaned_name)
-
-    # Fallback removal for standalone episode/season/etc numbers
-    if episode:
-        cleaned_name = re_sub(rf'\b(E|EP)?[._\s-]*{episode}\b', '', cleaned_name, flags=IGNORECASE)
-    if season:
-        cleaned_name = re_sub(rf'\bS(eason)?[._\s-]*{season}\b', '', cleaned_name, flags=IGNORECASE)
-    if volume:
-        cleaned_name = re_sub(rf'\bV(ol(ume)?)?[._\s-]*{volume}\b', '', cleaned_name, flags=IGNORECASE)
-    if chapter:
-        cleaned_name = re_sub(rf'\bC(h(apter)?)?[._\s-]*{chapter}\b', '', cleaned_name, flags=IGNORECASE)
-
-    # Also remove standalone common words if left behind
-    cleaned_name = re_sub(r'\b(Season|Episode|EP|Vol|Volume|Ch|Chapter)\b', '', cleaned_name, flags=IGNORECASE)
-
-    cleaned_name = ' '.join(cleaned_name.split())
-
     if tag:
-        try:
-            new_name = tag.format(title=cleaned_name, season=season, episode=episode,
-                                  quality=quality, audio=audio, volume=volume,
-                                  chapter=chapter, ext=ext)
-            if ext and not new_name.lower().endswith(ext.lower()):
-                new_name += ext
-            return sanitize_filename(new_name)
-        except Exception as e:
-            LOGGER.error(f"Error while formatting auto rename: {e}")
+        new_name = tag.replace('{filename}', cleaned_name)
+        new_name = new_name.replace('{title}', cleaned_name)
+        new_name = new_name.replace('{season}', season)
+        new_name = new_name.replace('{episode}', episode)
+        new_name = new_name.replace('{audio}', audio)
+        new_name = new_name.replace('{quality}', quality)
+        new_name = new_name.replace('{volume}', volume)
+        new_name = new_name.replace('{chapter}', chapter)
+        new_name = new_name.replace('{ext}', ext.lstrip('.'))
 
-    new_name = cleaned_name
+        new_name = re_sub(r'\{\w+\}', '', new_name)
+        new_name = ' '.join(new_name.split())
+        if ext and not new_name.lower().endswith(ext.lower()):
+            new_name += ext
+        return sanitize_filename(new_name)
+
+    # Default logic if no tag but some metadata found
+    title = cleaned_name
+    for p in [pattern1, pattern2, pattern3, pattern3_2, pattern4, pattern5, pattern6, pattern7, pattern8, pattern9, pattern10, pattern11, pattern12, pattern13, pattern14]:
+        title = p.sub('', title)
+
+    if episode:
+        title = re_sub(rf'\b(E|EP)?[._\s-]*{episode}\b', '', title, flags=IGNORECASE)
+    if season:
+        title = re_sub(rf'\bS(eason)?[._\s-]*{season}\b', '', title, flags=IGNORECASE)
+    if volume:
+        title = re_sub(rf'\bV(ol(ume)?)?[._\s-]*{volume}\b', '', title, flags=IGNORECASE)
+    if chapter:
+        title = re_sub(rf'\bC(h(apter)?)?[._\s-]*{chapter}\b', '', title, flags=IGNORECASE)
+
+    title = re_sub(r'\b(Season|Episode|EP|Vol|Volume|Ch|Chapter)\b', '', title, flags=IGNORECASE)
+    title = ' '.join(title.split())
+
+    new_name = title
     if season:
         new_name += f' S{season}'
     if volume:
