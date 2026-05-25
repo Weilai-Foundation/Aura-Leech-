@@ -242,101 +242,6 @@ async def split_file(path, size, file_, dirpath, split_size, listener, start_tim
             LOGGER.error(err)
     return True
 
-async def format_filename(file_, user_id, dirpath=None, isMirror=False):
-    user_dict = user_data.get(user_id, {})
-    if user_dict.get('auto_rename') or config_dict.get('AUTO_RENAME'):
-        file_ = await auto_rename(file_)
-    ftag, ctag = ('m', 'MIRROR') if isMirror else ('l', 'LEECH')
-    prefix = config_dict[f'{ctag}_FILENAME_PREFIX'] if (val:=user_dict.get(f'{ftag}prefix', '')) == '' else val
-    remname = config_dict[f'{ctag}_FILENAME_REMNAME'] if (val:=user_dict.get(f'{ftag}remname', '')) == '' else val
-    suffix = config_dict[f'{ctag}_FILENAME_SUFFIX'] if (val:=user_dict.get(f'{ftag}suffix', '')) == '' else val
-    lcaption = config_dict['LEECH_FILENAME_CAPTION'] if (val:=user_dict.get('lcaption', '')) == '' else val
-
-    prefile_ = file_
-    #file_ = re_sub(r'www\S+', '', file_)
-
-    # Remove URLs starting with "www"
-    file_ = re_sub(r'www\S+', '', file_, flags=IGNORECASE)
-
-    # Remove leading/trailing dashes and extra spaces
-    # file_ = re_sub(r'^\s*-\s*', '', file_)
-    file_ = re_sub(r'(^\s*-\s*|(\s*-\s*){2,})', '', file_)
-
-    if remname:
-        if not remname.startswith('|'):
-            remname = f"|{remname}"
-        remname = remname.replace('\\s', ' ')
-        slit = remname.split("|")
-        __newFileName = ospath.splitext(file_)[0]
-        for rep in range(1, len(slit)):
-            args = slit[rep].split(":")
-            if len(args) == 3:
-                __newFileName = re_sub(args[0], args[1], __newFileName, int(args[2]))
-            elif len(args) == 2:
-                __newFileName = re_sub(args[0], args[1], __newFileName)
-            elif len(args) == 1:
-                __newFileName = re_sub(args[0], '', __newFileName)
-        file_ = __newFileName + ospath.splitext(file_)[1]
-        LOGGER.info(f"New Remname : {file_}")
-
-    nfile_ = file_
-    if prefix:
-        nfile_ = prefix.replace('\\s', ' ') + file_
-        prefix = re_sub(r'<.*?>', '', prefix).replace('\\s', ' ')
-        if not file_.startswith(prefix):
-            file_ = f"{prefix}{file_}"
-
-    if suffix and not isMirror:
-        suffix = suffix.replace('\\s', ' ')
-        sufLen = len(suffix)
-        fileDict = file_.split('.')
-        _extIn = 1 + len(fileDict[-1])
-        _extOutName = '.'.join(
-            fileDict[:-1]).replace('.', ' ').replace('-', ' ')
-        _newExtFileName = f"{_extOutName}{suffix}.{fileDict[-1]}"
-        if len(_extOutName) > (64 - (sufLen + _extIn)):
-            _newExtFileName = (
-                _extOutName[: 64 - (sufLen + _extIn)]
-                + f"{suffix}.{fileDict[-1]}"
-            )
-        file_ = _newExtFileName
-    elif suffix:
-        suffix = suffix.replace('\\s', ' ')
-        file_ = f"{ospath.splitext(file_)[0]}{suffix}{ospath.splitext(file_)[1]}" if '.' in file_ else f"{file_}{suffix}"
-
-
-    cap_mono =  f"<{config_dict['CAP_FONT']}>{nfile_}</{config_dict['CAP_FONT']}>" if config_dict['CAP_FONT'] else nfile_
-    if lcaption and dirpath and not isMirror:
-
-        def lowerVars(match):
-            return f"{{{match.group(1).lower()}}}"
-
-        lcaption = lcaption.replace('\\|', '%%').replace('\\{', '&%&').replace('\\}', '$%$').replace('\\s', ' ')
-        slit = lcaption.split("|")
-        slit[0] = re_sub(r'\{([^}]+)\}', lowerVars, slit[0])
-        up_path = ospath.join(dirpath, prefile_)
-        dur, qual, lang, subs = await get_media_info(up_path, True)
-        cap_mono = slit[0].format(
-            filename = nfile_,
-            size = get_readable_file_size(await aiopath.getsize(up_path)),
-            duration = get_readable_time(dur),
-            quality = qual,
-            languages = lang,
-            subtitles = subs,
-            md5_hash = get_md5_hash(up_path)
-        )
-        if len(slit) > 1:
-            for rep in range(1, len(slit)):
-                args = slit[rep].split(":")
-                if len(args) == 3:
-                    cap_mono = cap_mono.replace(args[0], args[1], int(args[2]))
-                elif len(args) == 2:
-                    cap_mono = cap_mono.replace(args[0], args[1])
-                elif len(args) == 1:
-                    cap_mono = cap_mono.replace(args[0], '')
-        cap_mono = cap_mono.replace('%%', '|').replace('&%&', '{').replace('$%$', '}')
-    return file_, cap_mono
-
 
 async def get_ss(up_path, ss_no):
     thumbs_path, tstamps = await take_ss(up_path, total=min(ss_no, 250), gen_ss=True)
@@ -372,36 +277,60 @@ def get_md5_hash(up_path):
 
 
 # Patterns
+# Pattern 1: S01E02 or S01EP02 or S01_E01
 PATTERN1 = re_compile(r'S(\d+)[._\s-]*(?:E|EP)(\d+)', IGNORECASE)
+# Pattern 2: S01 E02 or S01 EP02 or S01 - E01 or S01 - EP02 or S01_01
 PATTERN2 = re_compile(r'S(\d+)[._\s-]*(\d+)', IGNORECASE)
+# Pattern 3: Episode Number After "E" or "EP"
 PATTERN3 = re_compile(r'(?:[([<{]?\s*(?:E|EP)[._\s-]*(\d+)\s*[)\]>}]?)', IGNORECASE)
+# Pattern 3_2: episode number after - [hyphen]
 PATTERN3_2 = re_compile(r'(?:\s*-\s*(\d+)\s*)')
+# Pattern 4: S2 09 ex.
 PATTERN4 = re_compile(r'S(\d+)[^\d]*(\d+)', IGNORECASE)
+# Pattern X: Standalone Episode Number
+PATTERNX = re_compile(r'(\d+)')
+# QUALITY PATTERNS
+# Pattern 5: 3-4 digits followed by 'p' as quality
 PATTERN5 = re_compile(r'(\d{3,4}p)', IGNORECASE)
+# Pattern 6: Find 4k in brackets or parentheses
 PATTERN6 = re_compile(r'[([<{]?\s*4k\s*[)\]>}]?', IGNORECASE)
+# Pattern 7: Find 2k in brackets or parentheses
 PATTERN7 = re_compile(r'[([<{]?\s*2k\s*[)\]>}]?', IGNORECASE)
+# Pattern 8: Find HdRip without spaces
 PATTERN8 = re_compile(r'[([<{]?\s*HdRip\s*[)\]>}]?|\bHdRip\b', IGNORECASE)
+# Pattern 9: Find 4kX264 in brackets or parentheses
 PATTERN9 = re_compile(r'[([<{]?\s*4kX264\s*[)\]>}]?', IGNORECASE)
+# Pattern 10: Find 4kx265 in brackets or parentheses
 PATTERN10 = re_compile(r'[([<{]?\s*4kx265\s*[)\]>}]?', IGNORECASE)
+
+# SEASON PATTERNS
+# Pattern 11: S01 or S 01 or Season 01
 PATTERN11 = re_compile(r'S(?:eason)?[._\s-]*(\d+)', IGNORECASE)
-PATTERN12 = re_compile(r'[([<{]?\s*(Dual Audio|Multi Audio|Hindi|English|Tamil|Telugu|Malayalam|Kannada|Bengali|Gujarati|Punjabi|Marathi)\s*[)\]>}]?', IGNORECASE)
+
+# AUDIO PATTERNS
+# Pattern 12: Dual Audio, Multi Audio, Hindi, English etc.
+PATTERN12 = re_compile(r'[([<{]?\s*(Dual Audio|Multi Audio|Hindi|English|Tamil|Telugu|Malayalam|Kannada|Bengali|Gujarati|Punjabi|Marathi|Dual-Audio)\s*[)\]>}]?', IGNORECASE)
+
+# MANGA PATTERNS
+# Pattern 13: Volume Number (V01, Vol 01, Volume 01)
 PATTERN13 = re_compile(r'V(?:ol(?:ume)?)?[._\s-]*(\d+)', IGNORECASE)
+# Pattern 14: Chapter Number (C01, Ch 01, Chapter 01)
 PATTERN14 = re_compile(r'C(?:h(?:apter)?)?[._\s-]*(\d+)', IGNORECASE)
 
 
 def sanitize_filename(filename):
+    # Remove invalid characters and trailing dots/spaces
     filename = re_sub(r'[\/*?:"<>|]', '', filename)
     return filename.strip().strip('.')
 
-
 def clean_filename(filename):
+    # Remove the telegram prefix if it exists (e.g. 8584729307_1773321117_BQACAgQA_)
     filename = re_sub(r'^\d+_\d+_[A-Za-z0-9]+_', '', filename)
-    filename = re_sub(r'(www\.\S+|https?://\S+)', '', filename, flags=IGNORECASE)
-    filename = re_sub(r'@[a-zA-Z0-9_]+', '', filename)
-    filename = filename.replace('_', ' ').replace('.', ' ')
+    # Replace underscores with spaces
+    filename = filename.replace('_', ' ')
+    # Remove extra spaces
     filename = ' '.join(filename.split())
     return filename
-
 
 def extract_season(filename):
     match = re_search(PATTERN11, filename)
@@ -409,6 +338,14 @@ def extract_season(filename):
         return match.group(1)
     return ""
 
+def extract_episode(filename):
+    for pattern in [PATTERN1, PATTERN2, PATTERN3, PATTERN3_2, PATTERN4, PATTERNX]:
+        match = re_search(pattern, filename)
+        if match:
+            if pattern in [PATTERN1, PATTERN2, PATTERN4]:
+                return match.group(2)
+            return match.group(1)
+    return ""
 
 def extract_audio(filename):
     match = re_search(PATTERN12, filename)
@@ -416,13 +353,11 @@ def extract_audio(filename):
         return match.group(1)
     return ""
 
-
 def extract_volume(filename):
     match = re_search(PATTERN13, filename)
     if match:
         return match.group(1)
     return ""
-
 
 def extract_chapter(filename):
     match = re_search(PATTERN14, filename)
@@ -430,96 +365,51 @@ def extract_chapter(filename):
         return match.group(1)
     return ""
 
-
 def extract_quality(filename):
-    match5 = re_search(PATTERN5, filename)
-    if match5:
-        return match5.group(1)
-    match6 = re_search(PATTERN6, filename)
-    if match6:
+    # Try Quality Patterns
+    if match := re_search(PATTERN5, filename):
+        return match.group(1)
+    if re_search(PATTERN6, filename):
         return "4k"
-    match7 = re_search(PATTERN7, filename)
-    if match7:
+    if re_search(PATTERN7, filename):
         return "2k"
-    match8 = re_search(PATTERN8, filename)
-    if match8:
+    if re_search(PATTERN8, filename):
         return "HdRip"
-    match9 = re_search(PATTERN9, filename)
-    if match9:
+    if re_search(PATTERN9, filename):
         return "4kX264"
-    match10 = re_search(PATTERN10, filename)
-    if match10:
+    if re_search(PATTERN10, filename):
         return "4kx265"
     return ""
 
 
-def extract_episode_number(filename):
-    match = re_search(PATTERN3, filename)
-    if match:
-        return match.group(1)
-    match = re_search(PATTERN1, filename)
-    if match:
-        return match.group(2)
-    match = re_search(PATTERN2, filename)
-    if match:
-        return match.group(2)
-    match = re_search(PATTERN3_2, filename)
-    if match:
-        return match.group(1)
-    match = re_search(PATTERN4, filename)
-    if match:
-        return match.group(2)
-    matches = re_findall(r'(\d+)', filename)
-    for num in matches:
-        if 1900 <= int(num) <= 2100:
-            continue
-        if num in ['480', '720', '1080', '2160']:
-            idx = filename.find(num)
-            if idx + len(num) < len(filename) and filename[idx + len(num)].lower() == 'p':
-                continue
-            if idx > 0 and filename[idx-1].lower() == 'x':
-                continue
-        return num
-    return None
-
-
-async def auto_rename(filename):
+async def auto_rename(filename, user_id):
     if not filename:
         return filename
-    extension = ospath.splitext(filename)[1]
-    name_only = ospath.splitext(filename)[0]
+    name, ext = ospath.splitext(filename)
+    cleaned_name = clean_filename(name)
 
-    season = extract_season(filename)
-    episode = extract_episode_number(filename)
-    quality = extract_quality(filename)
-    audio = extract_audio(filename)
-    volume = extract_volume(filename)
-    chapter = extract_chapter(filename)
+    season = extract_season(cleaned_name)
+    episode = extract_episode(cleaned_name)
+    audio = extract_audio(cleaned_name).replace("-", " ")
+    quality = extract_quality(cleaned_name)
+    volume = extract_volume(cleaned_name)
+    chapter = extract_chapter(cleaned_name)
 
-    clean_name = clean_filename(name_only)
+    user_dict = user_data.get(user_id, {})
+    template = user_dict.get('lauto_rename') or "{filename}.{ext}"
 
-    new_name = clean_name
-    if season:
-        season = season.zfill(2) if season.isdigit() else season
-        if f"S{season}" not in new_name.upper() and f"SEASON {season}" not in new_name.upper():
-            new_name += f" S{season}"
-    if episode:
-        episode = episode.zfill(2) if episode.isdigit() else episode
-        if f"E{episode}" not in new_name.upper() and f"EP{episode}" not in new_name.upper():
-            new_name += f" E{episode}"
-    if volume:
-        volume = volume.zfill(2) if volume.isdigit() else volume
-        if f"V{volume}" not in new_name.upper() and f"VOL.{volume}" not in new_name.upper():
-            new_name += f" Vol.{volume}"
-    if chapter:
-        chapter = chapter.zfill(2) if chapter.isdigit() else chapter
-        if f"C{chapter}" not in new_name.upper() and f"CH.{chapter}" not in new_name.upper():
-            new_name += f" Ch.{chapter}"
-    if audio:
-        if audio.upper() not in new_name.upper():
-            new_name += f" {audio}"
-    if quality:
-        if quality.upper() not in new_name.upper():
-            new_name += f" {quality}"
+    new_name = template
+    new_name = new_name.replace('{filename}', cleaned_name)
+    new_name = new_name.replace('{season}', season)
+    new_name = new_name.replace('{episode}', episode)
+    new_name = new_name.replace('{audio}', audio)
+    new_name = new_name.replace('{quality}', quality)
+    new_name = new_name.replace('{volume}', volume)
+    new_name = new_name.replace('{chapter}', chapter)
+    new_name = new_name.replace('{ext}', ext.lstrip('.'))
 
-    return sanitize_filename(new_name) + extension
+    # Remove any empty placeholders or double spaces resulting from empty extractions
+    new_name = re_sub(r'\{\w+\}', '', new_name)
+    new_name = ' '.join(new_name.split())
+
+    return sanitize_filename(new_name)
