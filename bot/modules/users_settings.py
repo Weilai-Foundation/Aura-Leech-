@@ -45,11 +45,13 @@ desp_dict = {'rcc': ['RClone is a command-line program to sync files and directo
             'user_tds': [f'UserTD helps to Upload files via Bot to your Custom Drive Destination via Global SA mail\n\n➲ <b>SA Mail :</b> {"Not Specified" if "USER_TD_SA" not in config_dict else config_dict["USER_TD_SA"]}', 'Send User TD details for Use while Mirror/Clone\n➲ <b>Format:</b>\nname id/link index(optional)\nname2 link2/id2 index(optional)\n\n<b>NOTE:</b>\n<i>1. Drive ID must be valid, then only it will accept\n2. Names can have spaces\n3. All UserTDs are updated on every change\n4. To delete specific UserTD, give Name(s) separated by each line</i>\n\n<b>Timeout:</b> 60 sec'],
             'gofile': ['Gofile is a free file sharing and storage platform. You can store and share your content without any limit.', "Send GoFile's API Key. Get it on https://gofile.io/myProfile, It will not be Accepted if the API Key is Invalid !!\n<b>Timeout:</b> 60 sec"],
             'streamtape': ['Streamtape is free Video Streaming & sharing Hoster', "Send StreamTape's Login and Key\n<b>Format:</b> <code>user_login:pass_key</code>\n<b>Timeout:</b> 60 sec"],
+            'lauto_rename': ['Leech Auto Rename is a template-based renaming logic.', 'Send Leech Auto Rename template. \n<b>Available Tags:</b>\n{filename}, {season}, {episode}, {audio}, {quality}, {volume}, {chapter}, {ext} \n\n<b>Timeout:</b> 60 sec'],
             }
 fname_dict = {'rcc': 'RClone',
              'lprefix': 'Prefix',
              'lsuffix': 'Suffix',
              'lremname': 'Remname',
+             'lauto_rename': 'Auto Rename',
              'metadata': 'Metadata',
              'lattachment': 'Attachment',
              'mprefix': 'Prefix',
@@ -159,6 +161,10 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         equal_splits = 'Enabled' if user_dict.get('equal_splits', config_dict.get('EQUAL_SPLITS')) else 'Disabled'
         media_group = 'Enabled' if user_dict.get('media_group', config_dict.get('MEDIA_GROUP')) else 'Disabled'
         auto_rename_status = 'Enabled' if user_dict.get('auto_rename', config_dict.get('AUTO_RENAME')) else 'Disabled'
+        if user_dict.get('auto_rename', False) or ('auto_rename' not in user_dict and config_dict['AUTO_RENAME']):
+            buttons.ibutton("Disable Auto Rename", f"userset {user_id} arename")
+        else:
+            buttons.ibutton("Enable Auto Rename", f"userset {user_id} arename")
         buttons.ibutton(f"{'✅️' if user_dict.get('split_size') else ''} Leech Splits", f"userset {user_id} split_size")
 
         lcaption = 'Not Exists' if (val:=user_dict.get('lcaption', config_dict.get('LEECH_FILENAME_CAPTION', ''))) == '' else val
@@ -172,6 +178,9 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
 
         lremname = 'Not Exists' if (val:=user_dict.get('lremname', config_dict.get('LEECH_FILENAME_REMNAME', ''))) == '' else val
         buttons.ibutton(f"{'✅️' if lremname != 'Not Exists' else ''} Leech Remname", f"userset {user_id} lremname")
+
+        lauto_rename = 'Not Exists' if (val:=user_dict.get('lauto_rename', '')) == '' else val
+        buttons.ibutton(f"{'✅️' if lauto_rename != 'Not Exists' else ''} Auto Rename", f"userset {user_id} lauto_rename")
 
         buttons.ibutton("Leech Dump", f"userset {user_id} ldump")
         ldump = 'Not Exists' if (val:=user_dict.get('ldump', '')) == '' else len(val)
@@ -188,6 +197,7 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
                 AUTO_RENAME=auto_rename_status,
                 LCAPTION=escape(lcaption), LPREFIX=escape(lprefix),
                 LSUFFIX=escape(lsuffix), LREMNAME=escape(lremname),
+                LAUTO_RENAME=escape(lauto_rename),
                 LDUMP=ldump, METADATA=escape(metadata),
                 ATTACHMENT=escape(lattachment))
 
@@ -234,12 +244,13 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
                 buttons.ibutton("Disable Media Group", f"userset {user_id} mgroup", "header")
             else:
                 buttons.ibutton("Enable Media Group", f"userset {user_id} mgroup", "header")
-            if user_dict.get('auto_rename', False) or ('auto_rename' not in user_dict and config_dict['AUTO_RENAME']):
-                buttons.ibutton("Disable Auto Rename", f"userset {user_id} arename", "header")
-            else:
-                buttons.ibutton("Enable Auto Rename", f"userset {user_id} arename", "header")
-        elif key in ['lprefix', 'lremname', 'lsuffix', 'lcaption', 'ldump', 'metadata', 'lattachment']:
-            set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f'LEECH_FILENAME_{key[1:].upper()}', ''))) == '' else val
+        elif key in ['lprefix', 'lremname', 'lsuffix', 'lcaption', 'ldump', 'metadata', 'lattachment', 'lauto_rename']:
+            set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f'LEECH_FILENAME_{key[1:].upper()}', '') if key != 'lauto_rename' else '')) == '' else val
+            if key == 'lauto_rename':
+                if user_dict.get('auto_rename', False) or ('auto_rename' not in user_dict and config_dict['AUTO_RENAME']):
+                    buttons.ibutton("Disable Auto Rename", f"userset {user_id} arename", "header")
+                else:
+                    buttons.ibutton("Enable Auto Rename", f"userset {user_id} arename", "header")
             if set_exist != 'Not Exists' and key == "ldump":
                 set_exist = '\n\n' + '\n'.join([f"{index}. <b>{dump}</b> : <code>{ids}</code>" for index, (dump, ids) in enumerate(val.items(), start=1)])
             text += f"➲ <b>Leech Filename {fname_dict[key]} :</b> {set_exist}\n\n"
@@ -292,7 +303,7 @@ async def user_settings(client, message):
         if set_arg and (reply_to := message.reply_to_message):
             if message.from_user.id != reply_to.from_user.id:
                 return await editMessage(msg, '<i>Reply to Your Own Message for Setting via Args Directly</i>')
-            if set_arg in ['lprefix', 'lsuffix', 'lremname', 'lcaption', 'ldump', 'yt_opt', 'metadata', 'lattachment'] and reply_to.text:
+            if set_arg in ['lprefix', 'lsuffix', 'lremname', 'lcaption', 'ldump', 'yt_opt', 'metadata', 'lattachment', 'lauto_rename'] and reply_to.text:
                 return await set_custom(client, reply_to, msg, set_arg, True)
             elif set_arg == 'thumb' and reply_to.media:
                 return await set_thumb(client, reply_to, msg, set_arg, True)
@@ -316,7 +327,9 @@ async def user_settings(client, message):
 ➲ <b>YT-DLP Options :</b>
     /cmd -s yt_opt
 ➲ <b>Leech User Dump :</b>
-    /cmd -s ldump''')
+    /cmd -s ldump
+➲ <b>Leech Auto Rename :</b>
+    /cmd -s lauto_rename''')
     else:
         from_user = message.from_user
         handler_dict[from_user.id] = False
@@ -552,6 +565,8 @@ async def edit_user_settings(client, query):
         update_user_ldata(user_id, 'auto_rename' if data[2] == 'arename' else data[2], not user_dict.get('auto_rename' if data[2] == 'arename' else data[2], False))
         if data[2] in ['td_mode']:
             await update_user_settings(query, 'user_tds', 'mirror')
+        elif data[2] in ['arename']:
+            await update_user_settings(query, 'leech')
         else:
             await update_user_settings(query, 'universal')
         if DATABASE_URL:
