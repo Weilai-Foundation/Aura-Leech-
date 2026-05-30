@@ -681,6 +681,10 @@ async def set_commands(client):
     try:
         bot_cmds = [
             BotCommand(
+                BotCommands.StartCommand,
+                'Start the Bot',
+            ),
+            BotCommand(
                 BotCommands.MirrorCommand[0],
                 f'or /{BotCommands.MirrorCommand[1]} Mirror [links/media/rclone_path]',
             ),
