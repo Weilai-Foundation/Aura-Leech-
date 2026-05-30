@@ -1,4 +1,5 @@
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from bot.helper.ext_utils.font_utils import convert_to_tian
 
 
 class ButtonMaker:
@@ -10,6 +11,7 @@ class ButtonMaker:
         self.__footer_button = []
 
     def ubutton(self, key, link, position=None):
+        key = convert_to_tian(key)
         if not position:
             self.__button.append(InlineKeyboardButton(text=key, url=link))
         elif position == 'header':
@@ -22,6 +24,7 @@ class ButtonMaker:
             self.__footer_button.append(InlineKeyboardButton(text=key, url=link))
 
     def ibutton(self, key, data, position=None):
+        key = convert_to_tian(key)
         if not position:
             self.__button.append(InlineKeyboardButton(text=key, callback_data=data))
         elif position == 'header':
