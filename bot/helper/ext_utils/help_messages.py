@@ -484,7 +484,7 @@ default_desp = {'AS_DOCUMENT': 'Default type of Telegram file upload. Default is
                 'IS_TEAM_DRIVE': 'Set True if uploading to TeamDrive using google-api-python-client. Default is False',
                 'SHOW_MEDIAINFO': 'Add Button to Show MediaInfo in Leeched file. Bool',
                 'SCREENSHOTS_MODE': 'Enable or Diable generating Screenshots via -ss arg. Default is False. Bool',
-                'CAP_FONT': 'Add Custom Caption Font to Leeched Files, Available Values : b, i, u, s, code, spoiler. Reset Var to use Regular ( No Format )',
+                'CAP_FONT': 'Add Custom Caption Font to Leeched Files, Available Values : b, i, u, s, code, spoiler, blockquote. Reset Var to use Regular ( No Format )',
                 'LEECH_FILENAME_PREFIX': 'Add custom word prefix to leeched file name. Str',
                 'LEECH_FILENAME_SUFFIX': 'Add custom word suffix to leeched file name. Str',
                 'LEECH_FILENAME_CAPTION': 'Add custom word caption to leeched file/vedios. Str',

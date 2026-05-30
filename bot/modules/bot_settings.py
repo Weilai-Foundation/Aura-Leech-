@@ -170,7 +170,7 @@ async def load_config():
         SEARCH_API_LINK = ''
 
     CAP_FONT = environ.get('CAP_FONT', '').lower()
-    if CAP_FONT.strip() not in ['', 'b', 'i', 'u', 's', 'spoiler', 'code']:
+    if CAP_FONT.strip() not in ['', 'b', 'i', 'u', 's', 'spoiler', 'code', 'blockquote']:
         CAP_FONT = 'b'
         
     LEECH_FILENAME_PREFIX = environ.get('LEECH_FILENAME_PREFIX', '')
@@ -861,7 +861,7 @@ async def edit_variable(_, message, pre_message, key):
             value = 'minimal'
     elif key == 'CAP_FONT':
         value = value.strip().lower()
-        if value not in ['b', 'i', 'u', 's', 'spoiler', 'code']:
+        if value not in ['b', 'i', 'u', 's', 'spoiler', 'code', 'blockquote']:
             value = 'code'
     elif key == 'BASE_URL_PORT':
         value = int(value)
