@@ -414,6 +414,17 @@ async def kpsmlxcb(_, query):
             LOGGER.error(f"Web Paste Failed : {str(err)}")
     elif data[2] == "botpm":
         await query.answer(url=f"https://t.me/{bot_name}?start=kpsmlx")
+    elif data[2] == "about":
+        await query.answer()
+        buttons = ButtonMaker()
+        buttons.ibutton(BotTheme('BACK_BT'), f'kpsmlx {user_id} main')
+        await editMessage(message, BotTheme('ABOUT_MSG', mention=query.from_user.mention), buttons.build_menu(1))
+    elif data[2] == "main":
+        await query.answer()
+        buttons = ButtonMaker()
+        buttons.ibutton(BotTheme('ABOUT_BT'), f'kpsmlx {user_id} about')
+        buttons.ibutton(BotTheme('BACK_BT'), f'kpsmlx {user_id} close')
+        await editMessage(message, BotTheme('ST_MSG', mention=query.from_user.mention, help_command=f"/{BotCommands.HelpCommand}"), buttons.build_menu(2))
     elif data[2] == "help":
         await query.answer()
         btn = ButtonMaker()
