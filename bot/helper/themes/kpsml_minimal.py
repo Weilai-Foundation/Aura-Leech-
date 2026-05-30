@@ -296,6 +296,7 @@ class KPSMLStyle:
     MIRROR = '''㊂ <b><u>Mirror/Clone Settings : {NAME}</u></b>
 
 ┎<b> RClone Config :</b> <i>{RCLONE}</i>
+┠<b> Token.Pickle :</b> <i>{TPICK}</i>
 ┠<b> Mirror Prefix :</b> <code>{MPREFIX}</code>
 ┠<b> Mirror Suffix :</b> <code>{MSUFFIX}</code>
 ┠<b> Mirror Remname :</b> <code>{MREMNAME}</code>

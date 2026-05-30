@@ -24,13 +24,13 @@ getLogger('googleapiclient.discovery').setLevel(ERROR)
 
 class GoogleDriveHelper:
 
-    def __init__(self, name=None, path=None, listener=None):
+    def __init__(self, name=None, path=None, listener=None, user_id=None):
         self.__OAUTH_SCOPE = ['https://www.googleapis.com/auth/drive']
         self.__G_DRIVE_DIR_MIME_TYPE = "application/vnd.google-apps.folder"
         self.__G_DRIVE_BASE_DOWNLOAD_URL = "https://drive.google.com/uc?id={}&export=download"
         self.__G_DRIVE_DIR_BASE_DOWNLOAD_URL = "https://drive.google.com/drive/folders/{}"
         self.__listener = listener
-        self.__user_id = listener.message.from_user.id if listener else None
+        self.__user_id = user_id or (listener.message.from_user.id if listener else None)
         self.__path = path
         self.__total_bytes = 0
         self.__total_files = 0
@@ -68,6 +68,7 @@ class GoogleDriveHelper:
 
     def __authorize(self):
         credentials = None
+        user_token_path = f'tokens/{self.__user_id}.pickle'
         if config_dict['USE_SERVICE_ACCOUNTS']:
             json_files = listdir("accounts")
             self.__sa_number = len(json_files)
@@ -77,6 +78,10 @@ class GoogleDriveHelper:
             credentials = service_account.Credentials.from_service_account_file(
                 f'accounts/{json_files[self.__sa_index]}',
                 scopes=self.__OAUTH_SCOPE)
+        elif ospath.exists(user_token_path):
+            LOGGER.info(f"Authorize with user token.pickle: {user_token_path}")
+            with open(user_token_path, 'rb') as f:
+                credentials = pload(f)
         elif ospath.exists('token.pickle'):
             LOGGER.info("Authorize with token.pickle")
             with open('token.pickle', 'rb') as f:
@@ -88,7 +93,13 @@ class GoogleDriveHelper:
     def __alt_authorize(self):
         if not self.__alt_auth:
             self.__alt_auth = True
-            if ospath.exists('token.pickle'):
+            user_token_path = f'tokens/{self.__user_id}.pickle'
+            if ospath.exists(user_token_path):
+                LOGGER.info(f"Authorize with user token.pickle: {user_token_path}")
+                with open(user_token_path, 'rb') as f:
+                    credentials = pload(f)
+                return build('drive', 'v3', credentials=credentials, cache_discovery=False)
+            elif ospath.exists('token.pickle'):
                 LOGGER.info("Authorize with token.pickle")
                 with open('token.pickle', 'rb') as f:
                     credentials = pload(f)
