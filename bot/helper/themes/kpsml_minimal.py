@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 class KPSMLStyle:
-    # ----------------------
-    # async def start(client, message) ---> __main__.py
-    ST_BN1_NAME = '𝖴𝗉𝖽𝖺𝗍𝖾𝗌'
-    ST_BN1_URL = 'https://t.me/Naidou_Auto'
-    ST_BN2_NAME = '𝖲𝗎𝗉𝗉𝗈𝗋𝗍'
-    ST_BN2_URL = 'https://t.me/Weilai_Chat'
     ST_MSG = '''<b><blockquote>𝖧𝖾𝗒 {mention}!
 𝖳𝗁𝗂𝗌 𝖻𝗈𝗍 𝖼𝖺𝗇 𝗆𝗂𝗋𝗋𝗈𝗋 𝖺𝗅𝗅 𝗒𝗈𝗎𝗋 𝗅𝗂𝗇𝗄𝗌|𝖿𝗂𝗅𝖾𝗌|𝗍𝗈𝗋𝗋𝖾𝗇𝗍𝗌 𝗍𝗈 𝖦𝗈𝗈𝗀𝗅𝖾 𝖣𝗋𝗂𝗏𝖾 𝗈𝗋 𝖺𝗇𝗒 𝗋𝖼𝗅𝗈𝗇𝖾 𝖼𝗅𝗈𝗎𝖽 𝗈𝗋 𝗍𝗈 𝗍𝖾𝗅𝖾𝗀𝗋𝖺𝗆 𝗈𝗋 𝗍𝗈 𝖽𝖽𝗅 𝗌𝖾𝗋𝗏𝖾𝗋𝗌.
 
