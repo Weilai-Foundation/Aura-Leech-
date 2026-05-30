@@ -25,7 +25,7 @@ async def list_buttons(user_id, isRecursive=True):
 
 async def _list_drive(key, message, user_id, item_type, isRecursive):
     LOGGER.info(f"GDrive List: {key}")
-    gdrive = GoogleDriveHelper()
+    gdrive = GoogleDriveHelper(user_id=user_id)
     telegraph_content, contents_no = await sync_to_async(gdrive.drive_list, key, isRecursive=isRecursive, itemType=item_type, userId=user_id)
     if telegraph_content:
         try:

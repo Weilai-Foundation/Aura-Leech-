@@ -23,7 +23,7 @@ async def driveclean(_, message):
     if not is_gdrive_link(link):
         return await sendMessage(message, 'No GDrive Link Provided')
     clean_msg = await sendMessage(message, '<i>Fetching ...</i>')
-    gd = GoogleDriveHelper()
+    gd = GoogleDriveHelper(user_id=message.from_user.id)
     name, mime_type, size, files, folders = await sync_to_async(gd.count, link)
     try:
         drive_id = GoogleDriveHelper.getIdFromUrl(link)
@@ -59,7 +59,7 @@ async def drivecleancb(_, query):
     if data[1] == "clear":
         await query.answer()
         await editMessage(message, '<i>Processing Drive Clean / Trash...</i>')
-        drive = GoogleDriveHelper()
+        drive = GoogleDriveHelper(user_id=query.from_user.id)
         msg = await sync_to_async(drive.driveclean, data[2], trash=len(data)==4)
         await editMessage(message, msg)
     elif data[1] == "stop":

@@ -25,7 +25,7 @@ async def countNode(_, message):
 
     if is_gdrive_link(link):
         msg = await sendMessage(message, BotTheme('COUNT_MSG', LINK=link))
-        gd = GoogleDriveHelper()
+        gd = GoogleDriveHelper(user_id=message.from_user.id)
         name, mime_type, size, files, folders = await sync_to_async(gd.count, link)
         if mime_type is None:
             await sendMessage(message, name)

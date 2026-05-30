@@ -30,6 +30,7 @@ from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, e
 from bot.helper.listeners.tasks_listener import MirrorLeechListener
 from bot.helper.ext_utils.help_messages import MIRROR_HELP_MESSAGE, CLONE_HELP_MESSAGE, YT_HELP_MESSAGE, help_string
 from bot.helper.ext_utils.bulk_links import extract_bulk_links
+from bot.helper.themes import BotTheme
 from bot.modules.gen_pyro_sess import get_decrypt_key
 
 @new_task
@@ -279,7 +280,7 @@ async def _mirror_leech(client, message, isQbit=False, isLeech=False, sameDir=No
                 if is_cancelled:
                     await delete_links(message)
                     return
-            if drive_id and not await sync_to_async(GoogleDriveHelper().getFolderData, drive_id):
+            if drive_id and not await sync_to_async(GoogleDriveHelper(user_id=message.from_user.id).getFolderData, drive_id):
                 return await sendMessage(message, "Google Drive ID validation failed!!")
         if up == 'gd' and not config_dict['GDRIVE_ID'] and not drive_id:
             await sendMessage(message, 'GDRIVE_ID not Provided!')

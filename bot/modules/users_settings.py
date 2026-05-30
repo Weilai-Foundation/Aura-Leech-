@@ -46,6 +46,7 @@ desp_dict = {'rcc': ['RClone is a command-line program to sync files and directo
             'gofile': ['Gofile is a free file sharing and storage platform. You can store and share your content without any limit.', "Send GoFile's API Key. Get it on https://gofile.io/myProfile, It will not be Accepted if the API Key is Invalid !!\n<b>Timeout:</b> 60 sec"],
             'streamtape': ['Streamtape is free Video Streaming & sharing Hoster', "Send StreamTape's Login and Key\n<b>Format:</b> <code>user_login:pass_key</code>\n<b>Timeout:</b> 60 sec"],
             'lauto_rename': ['Leech Filename Auto Rename is combination of dynamic tags used for renaming Filename of the Leech Files', 'Send Leech Filename Auto Rename Format. Documentation Here : <a href="https://t.me/KPSBots/87">Click Me</a> \n<b>Timeout:</b> 60 sec'],
+            'tpick': ['Google Drive Token Pickle is the authentication file for your Google Drive account.', 'Send token.pickle file. \n<b>Timeout:</b> 60 sec'],
             }
 fname_dict = {'rcc': 'RClone',
              'lprefix': 'Prefix',
@@ -67,6 +68,7 @@ fname_dict = {'rcc': 'RClone',
              'user_tds': 'User Custom TDs',
              'gofile': 'GoFile',
              'streamtape': 'StreamTape',
+             'tpick': 'Token.Pickle',
              }
 
 async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None):
@@ -116,6 +118,11 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
     elif key == 'mirror':
         buttons.ibutton("RClone", f"userset {user_id} rcc")
         rccmsg = "Exists" if await aiopath.exists(rclone_path) else "Not Exists"
+
+        buttons.ibutton("Token.Pickle", f"userset {user_id} tpick")
+        tpick_path = f'tokens/{user_id}.pickle'
+        tpickmsg = "Exists" if await aiopath.exists(tpick_path) else "Not Exists"
+
         dailytlup = get_readable_file_size(config_dict['DAILY_MIRROR_LIMIT'] * 1024**3) if config_dict['DAILY_MIRROR_LIMIT'] else "∞"
         dailyup = get_readable_file_size(await getdailytasks(user_id, check_mirror=True)) if config_dict['DAILY_MIRROR_LIMIT'] and user_id != OWNER_ID else "️∞"
         buttons.ibutton("Mirror Prefix", f"userset {user_id} mprefix")
@@ -137,7 +144,7 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         user_tds = len(val) if (val := user_dict.get('user_tds', False)) else 0
         buttons.ibutton("User TDs", f"userset {user_id} user_tds")
 
-        text = BotTheme('MIRROR', NAME=name, RCLONE=rccmsg, DDL_SERVER=ddl_serv, DM=f"{dailyup} / {dailytlup}", MREMNAME=escape(mremname), MPREFIX=escape(mprefix),
+        text = BotTheme('MIRROR', NAME=name, RCLONE=rccmsg, TPICK=tpickmsg, DDL_SERVER=ddl_serv, DM=f"{dailyup} / {dailytlup}", MREMNAME=escape(mremname), MPREFIX=escape(mprefix),
                 MSUFFIX=escape(msuffix), TMODE=tds_mode, USERTD=user_tds)
 
         buttons.ibutton("Back", f"userset {user_id} back", "footer")
@@ -224,6 +231,10 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         if key == 'rcc':
             set_exist = await aiopath.exists(rclone_path)
             text += f"➲ <b>RClone.Conf File :</b> <i>{'' if set_exist else 'Not'} Exists</i>\n\n"
+        elif key == 'tpick':
+            tpick_path = f'tokens/{user_id}.pickle'
+            set_exist = await aiopath.exists(tpick_path)
+            text += f"➲ <b>Token.Pickle File :</b> <i>{'' if set_exist else 'Not'} Exists</i>\n\n"
         elif key == 'thumb':
             set_exist = await aiopath.exists(thumbpath)
             text += f"➲ <b>Custom Thumbnail :</b> <i>{'' if set_exist else 'Not'} Exists</i>\n\n"
@@ -426,6 +437,21 @@ async def add_rclone(client, message, pre_event):
     await update_user_settings(pre_event, 'rcc', 'mirror')
     if DATABASE_URL:
         await DbManger().update_user_doc(user_id, 'rclone', des_dir)
+
+
+async def add_token_pickle(client, message, pre_event):
+    user_id = message.from_user.id
+    handler_dict[user_id] = False
+    path = f'{getcwd()}/tokens/'
+    if not await aiopath.isdir(path):
+        await mkdir(path)
+    des_dir = ospath.join(path, f'{user_id}.pickle')
+    await message.download(file_name=des_dir)
+    update_user_ldata(user_id, 'tpick', f'tokens/{user_id}.pickle')
+    await deleteMessage(message)
+    await update_user_settings(pre_event, 'tpick', 'mirror')
+    if DATABASE_URL:
+        await DbManger().update_user_doc(user_id, 'tpick', des_dir)
 
 
 async def leech_split_size(client, message, pre_event):
@@ -634,6 +660,27 @@ async def edit_user_settings(client, query):
         else:
             await query.answer("Old Settings", show_alert=True)
             await update_user_settings(query)
+    elif data[2] == 'tpick':
+        await query.answer()
+        edit_mode = len(data) == 4
+        await update_user_settings(query, data[2], 'mirror', edit_mode)
+        if not edit_mode: return
+        pfunc = partial(add_token_pickle, pre_event=query)
+        rfunc = partial(update_user_settings, query, data[2], 'mirror')
+        await event_handler(client, query, pfunc, rfunc, document=True)
+    elif data[2] == 'dtpick':
+        handler_dict[user_id] = False
+        tpick_path = f'tokens/{user_id}.pickle'
+        if await aiopath.exists(tpick_path):
+            await query.answer()
+            await aioremove(tpick_path)
+            update_user_ldata(user_id, 'tpick', '')
+            await update_user_settings(query, 'tpick', 'mirror')
+            if DATABASE_URL:
+                await DbManger().update_user_doc(user_id, 'tpick')
+        else:
+            await query.answer("Old Settings", show_alert=True)
+            await update_user_settings(query)
     elif data[2] in ['ddl_servers', 'user_tds', 'gofile', 'streamtape']:
         handler_dict[user_id] = False
         await query.answer()
@@ -690,6 +737,9 @@ async def edit_user_settings(client, query):
             await aioremove(thumb_path)
         if await aiopath.exists(rclone_path):
             await aioremove(rclone_path)
+        tpick_path = f'tokens/{user_id}.pickle'
+        if await aiopath.exists(tpick_path):
+            await aioremove(tpick_path)
         await query.answer()
         update_user_ldata(user_id, None, None)
         await update_user_settings(query)
@@ -697,20 +747,25 @@ async def edit_user_settings(client, query):
             await DbManger().update_user_data(user_id)
             await DbManger().update_user_doc(user_id, 'thumb')
             await DbManger().update_user_doc(user_id, 'rclone')
+            await DbManger().update_user_doc(user_id, 'tpick')
     elif data[2] == 'user_del':
         user_id = int(data[3])
         await query.answer()
         thumb_path = f'Thumbnails/{user_id}.jpg'
         rclone_path = f'wcl/{user_id}.conf'
+        tpick_path = f'tokens/{user_id}.pickle'
         if await aiopath.exists(thumb_path):
             await aioremove(thumb_path)
         if await aiopath.exists(rclone_path):
             await aioremove(rclone_path)
+        if await aiopath.exists(tpick_path):
+            await aioremove(tpick_path)
         update_user_ldata(user_id, None, None)
         if DATABASE_URL:
             await DbManger().update_user_data(user_id)
             await DbManger().update_user_doc(user_id, 'thumb')
             await DbManger().update_user_doc(user_id, 'rclone')
+            await DbManger().update_user_doc(user_id, 'tpick')
         await editMessage(message, f'Data Reset for {user_id}')
     else:
         handler_dict[user_id] = False
