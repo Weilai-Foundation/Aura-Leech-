@@ -5,7 +5,7 @@ from os import execl as osexecl
 from asyncio import create_subprocess_exec, gather, run as asyrun
 from uuid import uuid4
 from base64 import b64decode
-from importlib import import_module, reload
+from importlib import import_module
 
 from requests import get as rget
 from pytz import timezone
@@ -41,13 +41,23 @@ async def stats(client, message):
 @new_task
 async def start(client, message):
     buttons = ButtonMaker()
-    user_id = message.from_user.id
+    if message.from_user:
+        user_id = message.from_user.id
+        mention = message.from_user.mention
+    elif message.sender_chat:
+        user_id = message.sender_chat.id
+        mention = message.sender_chat.title
+    else:
+        user_id = message.chat.id
+        mention = "User"
     buttons.ibutton(BotTheme('ABOUT_BT'), f'kpsmlx {user_id} about')
     buttons.ibutton(BotTheme('BACK_BT'), f'kpsmlx {user_id} close')
     reply_markup = buttons.build_menu(2)
     if len(message.command) > 1 and message.command[1] == "kpsmlx":
         await deleteMessage(message)
     elif len(message.command) > 1 and config_dict['TOKEN_TIMEOUT']:
+        if not message.from_user:
+             return await sendMessage(message, "Token activation is only for users, not anonymous chats.")
         userid = message.from_user.id
         encrypted_url = message.command[1]
         input_token, pre_uid = (b64decode(encrypted_url.encode()).decode()).split('&&')
@@ -63,13 +73,14 @@ async def start(client, message):
         msg = BotTheme('TOKEN_MSG', token=input_token, validity=get_readable_time(int(config_dict["TOKEN_TIMEOUT"])))
         return await sendMessage(message, msg, reply_markup)
     elif await CustomFilters.authorized(client, message):
-        start_string = BotTheme('ST_MSG', mention=message.from_user.mention, help_command=f"/{BotCommands.HelpCommand}")
+        start_string = BotTheme('ST_MSG', mention=mention, help_command=f"/{BotCommands.HelpCommand}")
         await sendMessage(message, start_string, reply_markup, photo='IMAGES')
     elif config_dict['BOT_PM']:
-        await sendMessage(message, BotTheme('ST_BOTPM', mention=message.from_user.mention, help_command=f"/{BotCommands.HelpCommand}"), reply_markup, photo='IMAGES')
+        await sendMessage(message, BotTheme('ST_BOTPM', mention=mention, help_command=f"/{BotCommands.HelpCommand}"), reply_markup, photo='IMAGES')
     else:
-        await sendMessage(message, BotTheme('ST_UNAUTH', mention=message.from_user.mention, help_command=f"/{BotCommands.HelpCommand}"), reply_markup, photo='IMAGES')
-    await DbManger().update_pm_users(message.from_user.id)
+        await sendMessage(message, BotTheme('ST_UNAUTH', mention=mention, help_command=f"/{BotCommands.HelpCommand}"), reply_markup, photo='IMAGES')
+    if message.from_user and message.chat.type == ChatType.PRIVATE:
+        await DbManger().update_pm_users(message.from_user.id)
 
 
 async def token_callback(_, query):
@@ -248,7 +259,7 @@ async def main():
     await sync_to_async(start_aria2_listener, wait=False)
     
     bot.add_handler(MessageHandler(
-        start, filters=command(BotCommands.StartCommand) & private))
+        start, filters=command(BotCommands.StartCommand)))
     bot.add_handler(CallbackQueryHandler(
         token_callback, filters=regex(r'^pass')))
     bot.add_handler(MessageHandler(
