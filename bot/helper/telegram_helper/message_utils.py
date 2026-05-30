@@ -14,11 +14,13 @@ from pyrogram.errors import ReplyMarkupInvalid, FloodWait, PeerIdInvalid, Channe
 
 from bot import config_dict, user_data, categories_dict, bot_cache, LOGGER, bot_name, status_reply_dict, status_reply_dict_lock, Interval, bot, user, download_dict_lock
 from bot.helper.ext_utils.bot_utils import get_readable_message, setInterval, sync_to_async, download_image_url, fetch_user_tds, fetch_user_dumps, new_thread
+from bot.helper.ext_utils.font_utils import convert_to_tian
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.ext_utils.exceptions import TgLinkException
 
 
 async def sendMessage(message, text, buttons=None, photo=None, **kwargs):
+    text = convert_to_tian(text)
     try:
         if photo:
             try:
@@ -52,6 +54,7 @@ async def sendMessage(message, text, buttons=None, photo=None, **kwargs):
 
 
 async def sendCustomMsg(chat_id, text, buttons=None, photo=None, debug=False):
+    text = convert_to_tian(text)
     try:
         if photo:
             try:
@@ -99,6 +102,7 @@ async def chat_info(channel_id):
 
 
 async def sendMultiMessage(chat_ids, text, buttons=None, photo=None):
+    text = convert_to_tian(text)
     msg_dict = {}
     for channel_id in chat_ids.split():
         channel_id, *topic_id = channel_id.split(':')
@@ -136,6 +140,7 @@ async def sendMultiMessage(chat_ids, text, buttons=None, photo=None):
 
 
 async def editMessage(message, text, buttons=None, photo=None):
+    text = convert_to_tian(text)
     try:
         if message.media:
             if photo:
@@ -167,6 +172,7 @@ async def editReplyMarkup(message, reply_markup):
 
 
 async def sendFile(message, file, caption=None, buttons=None):
+    caption = convert_to_tian(caption)
     try:
         return await message.reply_document(document=file, quote=True, caption=caption, disable_notification=True, reply_markup=buttons)
     except FloodWait as f:
@@ -179,6 +185,7 @@ async def sendFile(message, file, caption=None, buttons=None):
 
 
 async def sendRss(text):
+    text = convert_to_tian(text)
     try:
         if user:
             return await user.send_message(chat_id=config_dict['RSS_CHAT'], text=text, disable_web_page_preview=True,
