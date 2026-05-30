@@ -6,10 +6,29 @@ class KPSMLStyle:
     ST_BN1_URL = 'https://t.me/Naidou_Auto'
     ST_BN2_NAME = '𝖲𝗎𝗉𝗉𝗈𝗋𝗍'
     ST_BN2_URL = 'https://t.me/Weilai_Chat'
-    ST_MSG = '''<b><i>This bot can mirror all your links|files|torrents to Google Drive or any rclone cloud or to telegram or to ddl servers.</i>\n
-Type {help_command} to get a list of available commands</b>'''
-    ST_BOTPM = '''<i>Now, This bot will send all your files and links here. Start Using ...</i>'''
-    ST_UNAUTH = '''<i>You Are not authorized user! Deploy your own KPSML-X Mirror-Leech bot</i>'''
+    ST_MSG = '''<b><blockquote>𝖧𝖾𝗒 {mention}!
+𝖳𝗁𝗂𝗌 𝖻𝗈𝗍 𝖼𝖺𝗇 𝗆𝗂𝗋𝗋𝗈𝗋 𝖺𝗅𝗅 𝗒𝗈𝗎𝗋 𝗅𝗂𝗇𝗄𝗌|𝖿𝗂𝗅𝖾𝗌|𝗍𝗈𝗋𝗋𝖾𝗇𝗍𝗌 𝗍𝗈 𝖦𝗈𝗈𝗀𝗅𝖾 𝖣𝗋𝗂𝗏𝖾 𝗈𝗋 𝖺𝗇𝗒 𝗋𝖼𝗅𝗈𝗇𝖾 𝖼𝗅𝗈𝗎𝖽 𝗈𝗋 𝗍𝗈 𝗍𝖾𝗅𝖾𝗀𝗋𝖺𝗆 𝗈𝗋 𝗍𝗈 𝖽𝖽𝗅 𝗌𝖾𝗋𝗏𝖾𝗋𝗌.
+
+𝖳𝗒𝗉𝖾 {help_command} 𝗍𝗈 𝗀𝖾𝗍 𝖺 𝗅𝗂𝗌𝗍 𝗈𝖿 𝖺𝗏𝖺𝗂𝗅𝖺𝖻𝗅𝖾 𝖼𝗈𝗆𝗆𝖺𝗇𝖽𝗌
+
+➤ 𝖯𝗈𝗐𝖾𝗋𝖾𝚍 𝖻𝗒 @Team_Weilai </b></blockquote>'''
+    ST_BOTPM = '''<b><blockquote>𝖧𝖾𝗒 {mention}!
+𝖳𝗁𝗂𝗌 𝖻𝗈𝗍 𝖼𝖺𝗇 𝗆𝗂𝗋𝗋𝗈𝗋 𝖺𝗅𝗅 𝗒𝗈𝗎𝗋 𝗅𝗂𝗇𝗄𝗌|𝖿𝗂𝗅𝖾𝗌|𝗍𝗈𝗋𝗋𝖾𝗇𝗍𝗌 𝗍𝗈 𝖦𝗈𝗈𝗀𝗅𝖾 𝖣𝗋𝗂𝗏𝖾 𝗈𝗋 𝖺𝗇𝗒 𝗋𝖼𝗅𝗈𝗇𝖾 𝖼𝗅𝗈𝗎𝖽 𝗈𝗋 𝗍𝗈 𝗍𝖾𝗅𝖾𝗀𝗋𝖺𝗆 𝗈𝗋 𝗍𝗈 𝖽𝖽𝗅 𝗌𝖾𝗋𝗏𝖾𝗋𝗌.
+
+𝖳𝗒𝗉𝖾 {help_command} 𝗍𝗈 𝗀𝖾𝗍 𝖺 𝗅𝗂𝗌𝗍 𝗈𝖿 𝖺𝗏𝖺𝗂𝗅𝖺𝖻𝗅𝖾 𝖼𝗈𝗆𝗆𝖺𝗇𝖽𝗌
+
+➤ 𝖯𝗈𝗐𝖾𝗋𝖾𝚍 𝖻𝗒 @Team_Weilai </b></blockquote>'''
+    ST_UNAUTH = '''<b><blockquote>𝖧𝖾𝗒 {mention}!
+𝖳𝗁𝗂𝗌 𝖻𝗈𝗍 𝖼𝖺𝗇 𝗆𝗂𝗋𝗋𝗈𝗋 𝖺𝗅𝗅 𝗒𝗈𝗎𝗋 𝗅𝗂𝗇𝗄𝗌|𝖿𝗂𝗅𝖾𝗌|𝗍𝗈𝗋𝗋𝖾𝗇𝗍𝗌 𝗍𝗈 𝖦𝗈𝗈𝗀𝗅𝖾 𝖣𝗋𝗂𝗏𝖾 𝗈𝗋 𝖺𝗇𝗒 𝗋𝖼𝗅𝗈𝗇𝖾 𝖼𝗅𝗈𝗎𝖽 𝗈𝗋 𝗍𝗈 𝗍𝖾𝗅𝖾𝗀𝗋𝖺𝗆 𝗈𝗋 𝗍𝗈 𝖽𝖽𝗅 𝗌𝖾𝗋𝗏𝖾𝗋𝗌.
+
+𝖳𝗒𝗉𝖾 {help_command} 𝗍𝗈 𝗀𝖾𝗍 𝖺 𝗅𝗂𝗌𝗍 𝗈𝖿 𝖺𝗏𝖺𝗂𝗅𝖺𝖻𝗅𝖾 𝖼𝗈𝗆𝗆𝖺𝗇𝖽𝗌
+
+➤ 𝖯𝗈𝗐𝖾𝗋𝖾𝚍 𝖻𝗒 @Team_Weilai </b></blockquote>'''
+    ABOUT_MSG = '''<b><blockquote>𝖧𝖾𝗒 {mention}!
+
+𝖳𝗁𝗂𝗌 𝖻𝗈𝗍 𝗂𝗌 𝖽𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖿𝗈𝗋 𝗆𝗂𝗋𝗋𝗈𝗋𝗂𝗇𝗀 𝖿𝗂𝗅𝖾𝗌 𝖺𝗇𝖽 𝗅𝗂𝗇𝗄𝗌 𝗍𝗈 𝖼𝗅𝗈𝗎𝖽 𝖽𝗋𝗂𝗏𝖾𝗌 𝖺𝗇𝖽 𝗍𝖾𝗅𝖾𝗀𝗋𝖺𝗆. 𝖨𝗍 𝗌𝗎𝗉𝗉𝗈𝗋𝗍𝗌 𝗏𝖺𝗋𝗂𝗈𝗎𝗌 𝗉𝗅𝖺𝗍𝖿𝗈𝗋𝗆𝗌 𝖺𝗇𝖽 𝗉𝗋𝗈𝗏𝗂𝖽𝖾𝗌 𝖺 𝖿𝖺𝗌𝗍 𝖺𝗇𝖽 𝗋𝖾𝗅𝗂𝖺𝖻𝗅𝖾 𝗌𝖾𝗋𝗏𝗂𝖼𝖾.
+
+➤ 𝖯𝗈𝗐𝖾𝗋𝖾𝚍 𝖻𝗒 @Team_Weilai </b></blockquote>'''
     OWN_TOKEN_GENERATE = '''<b>Temporary Token is not yours!</b>\n\n<i>Kindly generate your own.</i>'''
     USED_TOKEN = '''<b>Temporary Token already used!</b>\n\n<i>Kindly generate a new one.</i>'''
     LOGGED_PASSWORD = '''<b>Bot Already Logged In via Password</b>\n\n<i>No Need to Accept Temp Tokens.</i>'''
@@ -37,6 +56,8 @@ Type {help_command} to get a list of available commands</b>'''
     MICS_BT = 'Mics'
     O_S_BT = 'Owner & Sudos'
     CLOSE_BT = 'Close'
+    ABOUT_BT = 'About'
+    BACK_BT = 'Back'
     HELP_HEADER = "㊂ <b><i>Help Guide Menu!</i></b>\n\n<b>NOTE: <i>Click on any CMD to see more minor detalis.</i></b>"
 
     # async def stats(client, message):

@@ -41,8 +41,9 @@ async def stats(client, message):
 @new_task
 async def start(client, message):
     buttons = ButtonMaker()
-    buttons.ubutton(BotTheme('ST_BN1_NAME'), BotTheme('ST_BN1_URL'))
-    buttons.ubutton(BotTheme('ST_BN2_NAME'), BotTheme('ST_BN2_URL'))
+    user_id = message.from_user.id
+    buttons.ibutton(BotTheme('ABOUT_BT'), f'kpsmlx {user_id} about')
+    buttons.ibutton(BotTheme('BACK_BT'), f'kpsmlx {user_id} close')
     reply_markup = buttons.build_menu(2)
     if len(message.command) > 1 and message.command[1] == "kpsmlx":
         await deleteMessage(message)
@@ -62,12 +63,12 @@ async def start(client, message):
         msg = BotTheme('TOKEN_MSG', token=input_token, validity=get_readable_time(int(config_dict["TOKEN_TIMEOUT"])))
         return await sendMessage(message, msg, reply_markup)
     elif await CustomFilters.authorized(client, message):
-        start_string = BotTheme('ST_MSG', help_command=f"/{BotCommands.HelpCommand}")
+        start_string = BotTheme('ST_MSG', mention=message.from_user.mention, help_command=f"/{BotCommands.HelpCommand}")
         await sendMessage(message, start_string, reply_markup, photo='IMAGES')
     elif config_dict['BOT_PM']:
-        await sendMessage(message, BotTheme('ST_BOTPM'), reply_markup, photo='IMAGES')
+        await sendMessage(message, BotTheme('ST_BOTPM', mention=message.from_user.mention, help_command=f"/{BotCommands.HelpCommand}"), reply_markup, photo='IMAGES')
     else:
-        await sendMessage(message, BotTheme('ST_UNAUTH'), reply_markup, photo='IMAGES')
+        await sendMessage(message, BotTheme('ST_UNAUTH', mention=message.from_user.mention, help_command=f"/{BotCommands.HelpCommand}"), reply_markup, photo='IMAGES')
     await DbManger().update_pm_users(message.from_user.id)
 
 
