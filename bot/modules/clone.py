@@ -7,7 +7,7 @@ from aiofiles.os import path as aiopath
 from cloudscraper import create_scraper as cget
 from json import loads, dumps as jdumps
 
-from bot import LOGGER, download_dict, download_dict_lock, categories_dict, config_dict, bot
+from bot import LOGGER, download_dict, download_dict_lock, categories_dict, config_dict, bot, user_data
 from bot.helper.ext_utils.task_manager import limit_checker, task_utils
 from bot.helper.mirror_utils.upload_utils.gdriveTools import GoogleDriveHelper
 from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, deleteMessage, sendStatusMessage, delete_links, auto_delete_message, open_category_btns
@@ -264,6 +264,8 @@ async def clone(client, message):
             return
         await rcloneNode(client, message, link, dst_path, rcf, tag)
     else:
+        if not drive_id and (usr_drive_id := user_data.get(message.from_user.id, {}).get('gdrive_id')):
+            drive_id = usr_drive_id
         user_tds = await fetch_user_tds(message.from_user.id)
         if not drive_id and gd_cat:
             merged_dict = {**categories_dict, **user_tds}
@@ -281,9 +283,12 @@ async def clone(client, message):
         if drive_id and not await sync_to_async(GoogleDriveHelper().getFolderData, drive_id):
             return await sendMessage(message, "Google Drive ID validation failed!!")
         if not config_dict['GDRIVE_ID'] and not drive_id:
-            await sendMessage(message, 'GDRIVE_ID not Provided!')
-            await delete_links(message)
-            return
+            if usr_drive_id := user_data.get(message.from_user.id, {}).get('gdrive_id'):
+                drive_id = usr_drive_id
+            else:
+                await sendMessage(message, 'GDRIVE_ID not Provided!')
+                await delete_links(message)
+                return
         await gdcloneNode(message, link, [tag, drive_id, index_link])
     await delete_links(message)
     

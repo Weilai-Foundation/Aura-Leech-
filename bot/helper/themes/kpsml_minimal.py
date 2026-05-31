@@ -292,6 +292,7 @@ class KPSMLStyle:
 
 ┎<b> RClone Config :</b> <i>{RCLONE}</i>
 ┠<b> Token.Pickle :</b> <i>{TPICK}</i>
+┠<b> GDrive ID :</b> <code>{GDRIVE_ID}</code>
 ┠<b> Mirror Prefix :</b> <code>{MPREFIX}</code>
 ┠<b> Mirror Suffix :</b> <code>{MSUFFIX}</code>
 ┠<b> Mirror Remname :</b> <code>{MREMNAME}</code>
