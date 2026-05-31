@@ -47,6 +47,7 @@ desp_dict = {'rcc': ['RClone is a command-line program to sync files and directo
             'streamtape': ['Streamtape is free Video Streaming & sharing Hoster', "Send StreamTape's Login and Key\n<b>Format:</b> <code>user_login:pass_key</code>\n<b>Timeout:</b> 60 sec"],
             'lauto_rename': ['Leech Filename Auto Rename is combination of dynamic tags used for renaming Filename of the Leech Files', 'Send Leech Filename Auto Rename Format. Documentation Here : <a href="https://t.me/KPSBots/87">Click Me</a> \n<b>Timeout:</b> 60 sec'],
             'tpick': ['Google Drive Token Pickle is the authentication file for your Google Drive account.', 'Send token.pickle file. \n<b>Timeout:</b> 60 sec'],
+            'gdrive_id': ['Google Drive ID is the ID of the Google Drive Folder or TeamDrive where you want to upload your files.', 'Send Google Drive ID or Link. \n<b>Timeout:</b> 60 sec'],
             }
 fname_dict = {'rcc': 'RClone',
              'lprefix': 'Prefix',
@@ -69,6 +70,7 @@ fname_dict = {'rcc': 'RClone',
              'gofile': 'GoFile',
              'streamtape': 'StreamTape',
              'tpick': 'Token.Pickle',
+             'gdrive_id': 'GDrive ID',
              }
 
 async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None):
@@ -123,6 +125,9 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         tpick_path = f'tokens/{user_id}.pickle'
         tpickmsg = "Exists" if await aiopath.exists(tpick_path) else "Not Exists"
 
+        buttons.ibutton("GDrive ID", f"userset {user_id} gdrive_id")
+        gdrive_id = 'Not Exists' if (val:=user_dict.get('gdrive_id', config_dict.get('GDRIVE_ID', ''))) == '' else val
+
         dailytlup = get_readable_file_size(config_dict['DAILY_MIRROR_LIMIT'] * 1024**3) if config_dict['DAILY_MIRROR_LIMIT'] else "∞"
         dailyup = get_readable_file_size(await getdailytasks(user_id, check_mirror=True)) if config_dict['DAILY_MIRROR_LIMIT'] and user_id != OWNER_ID else "️∞"
         buttons.ibutton("Mirror Prefix", f"userset {user_id} mprefix")
@@ -144,7 +149,7 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
         user_tds = len(val) if (val := user_dict.get('user_tds', False)) else 0
         buttons.ibutton("User TDs", f"userset {user_id} user_tds")
 
-        text = BotTheme('MIRROR', NAME=name, RCLONE=rccmsg, TPICK=tpickmsg, DDL_SERVER=ddl_serv, DM=f"{dailyup} / {dailytlup}", MREMNAME=escape(mremname), MPREFIX=escape(mprefix),
+        text = BotTheme('MIRROR', NAME=name, RCLONE=rccmsg, TPICK=tpickmsg, GDRIVE_ID=gdrive_id, DDL_SERVER=ddl_serv, DM=f"{dailyup} / {dailytlup}", MREMNAME=escape(mremname), MPREFIX=escape(mprefix),
                 MSUFFIX=escape(msuffix), TMODE=tds_mode, USERTD=user_tds)
 
         buttons.ibutton("Back", f"userset {user_id} back", "footer")
@@ -260,9 +265,9 @@ async def get_user_settings(from_user, key=None, edit_type=None, edit_mode=None)
             if set_exist != 'Not Exists' and key == "ldump":
                 set_exist = '\n\n' + '\n'.join([f"{index}. <b>{dump}</b> : <code>{ids}</code>" for index, (dump, ids) in enumerate(val.items(), start=1)])
             text += f"➲ <b>Leech Filename {fname_dict[key]} :</b> {set_exist}\n\n"
-        elif key in ['mprefix', 'mremname', 'msuffix']:
-            set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f'MIRROR_FILENAME_{key[1:].upper()}', ''))) == '' else val
-            text += f"➲ <b>Mirror Filename {fname_dict[key]} :</b> {set_exist}\n\n"
+        elif key in ['mprefix', 'mremname', 'msuffix', 'gdrive_id']:
+            set_exist = 'Not Exists' if (val:=user_dict.get(key, config_dict.get(f'MIRROR_FILENAME_{key[1:].upper()}' if key != 'gdrive_id' else 'GDRIVE_ID', ''))) == '' else val
+            text += f"➲ <b>Mirror Filename {fname_dict[key]} :</b> {set_exist}\n\n" if key != 'gdrive_id' else f"➲ <b>{fname_dict[key]} :</b> {set_exist}\n\n"
         elif key in ['gofile', 'streamtape']:
             set_exist = 'Exists' if key in (ddl_dict:=user_dict.get('ddl_servers', {})) and ddl_dict[key][1] and ddl_dict[key][1] != '' else 'Not Exists'
             ddl_mode = 'Enabled' if key in (ddl_dict:=user_dict.get('ddl_servers', {})) and ddl_dict[key][0] else 'Disabled'
@@ -309,7 +314,7 @@ async def user_settings(client, message):
         if set_arg and (reply_to := message.reply_to_message):
             if message.from_user.id != reply_to.from_user.id:
                 return await editMessage(msg, '<i>Reply to Your Own Message for Setting via Args Directly</i>')
-            if set_arg in ['lprefix', 'lsuffix', 'lremname', 'lcaption', 'ldump', 'yt_opt', 'metadata', 'lattachment'] and reply_to.text:
+            if set_arg in ['lprefix', 'lsuffix', 'lremname', 'lcaption', 'ldump', 'yt_opt', 'metadata', 'lattachment', 'gdrive_id'] and reply_to.text:
                 return await set_custom(client, reply_to, msg, set_arg, True)
             elif set_arg == 'thumb' and reply_to.media:
                 return await set_thumb(client, reply_to, msg, set_arg, True)
@@ -333,7 +338,9 @@ async def user_settings(client, message):
 ➲ <b>YT-DLP Options :</b>
     /cmd -s yt_opt
 ➲ <b>Leech User Dump :</b>
-    /cmd -s ldump''')
+    /cmd -s ldump
+➲ <b>GDrive ID :</b>
+    /cmd -s gdrive_id''')
     else:
         from_user = message.from_user
         handler_dict[from_user.id] = False
@@ -357,6 +364,10 @@ async def set_custom(client, message, pre_event, key, direct=False):
         value = ddl_dict
         n_key = 'ddl_servers'
         return_key = 'ddl_servers'
+    elif key == 'gdrive_id':
+        if is_gdrive_link(value):
+            value = GoogleDriveHelper.getIdFromUrl(value)
+        return_key = 'mirror'
     elif key == 'user_tds':
         user_tds = user_dict.get(key, {})
         for td_item in value.split('\n'):
@@ -681,14 +692,14 @@ async def edit_user_settings(client, query):
         else:
             await query.answer("Old Settings", show_alert=True)
             await update_user_settings(query)
-    elif data[2] in ['ddl_servers', 'user_tds', 'gofile', 'streamtape']:
+    elif data[2] in ['ddl_servers', 'user_tds', 'gofile', 'streamtape', 'gdrive_id']:
         handler_dict[user_id] = False
         await query.answer()
         edit_mode = len(data) == 4
-        await update_user_settings(query, data[2], 'mirror' if data[2] in ['ddl_servers', 'user_tds'] else 'ddl_servers', edit_mode)
+        await update_user_settings(query, data[2], 'mirror' if data[2] in ['ddl_servers', 'user_tds', 'gdrive_id'] else 'ddl_servers', edit_mode)
         if not edit_mode: return
         pfunc = partial(set_custom, pre_event=query, key=data[2])
-        rfunc = partial(update_user_settings, query, data[2], 'mirror' if data[2] in ['ddl_servers', 'user_tds'] else "ddl_servers")
+        rfunc = partial(update_user_settings, query, data[2], 'mirror' if data[2] in ['ddl_servers', 'user_tds', 'gdrive_id'] else "ddl_servers")
         await event_handler(client, query, pfunc, rfunc)
     elif data[2] in ['lprefix', 'lsuffix', 'lremname', 'lcaption', 'ldump', 'mprefix', 'msuffix', 'mremname', 'metadata', 'lattachment', 'lauto_rename']:
         handler_dict[user_id] = False
@@ -707,7 +718,7 @@ async def edit_user_settings(client, query):
         await update_user_settings(query, data[2][1:], 'leech')
         if DATABASE_URL:
             await DbManger().update_user_data(user_id)
-    elif data[2] in ['dmprefix', 'dmsuffix', 'dmremname', 'duser_tds']:
+    elif data[2] in ['dmprefix', 'dmsuffix', 'dmremname', 'duser_tds', 'dgdrive_id']:
         handler_dict[user_id] = False
         await query.answer()
         update_user_ldata(user_id, data[2][1:], {} if data[2] == 'duser_tds' else '')

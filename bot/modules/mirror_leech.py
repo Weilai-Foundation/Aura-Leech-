@@ -269,6 +269,8 @@ async def _mirror_leech(client, message, isQbit=False, isLeech=False, sameDir=No
             up = 'ddl'
         if not up and config_dict['DEFAULT_UPLOAD'] == 'gd':
             up = 'gd'
+            if not drive_id and (usr_drive_id := user_data.get(message.from_user.id, {}).get('gdrive_id')):
+                drive_id = usr_drive_id
             user_tds = await fetch_user_tds(message.from_user.id)
             if not drive_id and gd_cat:
                 merged_dict = {**categories_dict, **user_tds}
@@ -283,8 +285,11 @@ async def _mirror_leech(client, message, isQbit=False, isLeech=False, sameDir=No
             if drive_id and not await sync_to_async(GoogleDriveHelper(user_id=message.from_user.id).getFolderData, drive_id):
                 return await sendMessage(message, "Google Drive ID validation failed!!")
         if up == 'gd' and not config_dict['GDRIVE_ID'] and not drive_id:
-            await sendMessage(message, 'GDRIVE_ID not Provided!')
-            return
+            if usr_drive_id := user_data.get(message.from_user.id, {}).get('gdrive_id'):
+                drive_id = usr_drive_id
+            else:
+                await sendMessage(message, 'GDRIVE_ID not Provided!')
+                return
         elif not up:
             await sendMessage(message, 'No RClone Destination!')
             await delete_links(message)
